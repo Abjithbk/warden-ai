@@ -1,0 +1,35 @@
+name: Validate Manifests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  kubeconform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Kubernetes manifests
+        uses: docker://ghcr.io/yannh/kubeconform:latest
+        with:
+          args: -summary -ignore-missing-schemas cluster/online-boutique/release.yaml
+
+  kind-boot-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Kind cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          config: cluster/kind-config.yaml
+          cluster_name: warden-cluster
+
+      - name: Verify cluster is up
+        run: kubectl get nodes
+
+      - name: Apply Online Boutique manifests
+        run: kubectl apply -n warden-demo -f cluster/online-boutique/release.yaml --dry-run=client
