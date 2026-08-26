@@ -1,12 +1,9 @@
-import { useState } from 'react'
-
+import Sidebar from './components/Sidebar'
 
 function App() {
-
   return (
-    <div className='font-black'>
-      <h1 className='text-red-400'>hello world tailwind working</h1>
-
+    <div>
+      <Sidebar />
     </div>
   )
 }
