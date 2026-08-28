@@ -125,15 +125,16 @@ const Sidebar = ({ onClose }) => {
         {footerItems.map((item, idx) => {
           const Icon = item.icon;
           return (
-            <Link
+            <a
               key={idx}
-              to={item.path}
-              onClick={onClose}
+              href={item.href}
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-slate-800/60 hover:text-white transition-colors"
             >
               <Icon className="h-4 w-4 flex-shrink-0" />
               <span>{item.label}</span>
-            </Link>
+            </a>
           );
         })}
       </div>

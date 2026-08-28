@@ -1,12 +1,11 @@
-import React, { useState } from 'react';
-import Layout from '../components/layout/Layout';
+import React, { useState,useEffect } from 'react';
 import SearchBar from '../components/common/SearchBar';
 import AuditTable from '../components/audit/AuditTable';
 
 const AuditLog = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
-  const auditData = [
+    const auditData = [
     {
       time: '16:42:13',
       incident: 'WRD-2299',
@@ -16,20 +15,20 @@ const AuditLog = () => {
       rollback: '-',
     },
     {
-      time: '13:41:07',
-      incident: 'WRD-2288',
-      service: 'inventory-svc',
-      action: 'rollback_deployment',
-      result: 'In progress',
-      rollback: '-',
-    },
-    {
       time: '13:48:52',
       incident: 'WRD-2286',
       service: 'payments-worker',
       action: 'pod_restart',
       result: 'Success',
       rollback: 'not needed',
+    },
+    {
+      time: '13:41:07',
+      incident: 'WRD-2288',
+      service: 'inventory-svc',
+      action: 'rollback_deployment',
+      result: 'In progress',
+      rollback: '-',
     },
     {
       time: '11:59:20',
@@ -56,7 +55,6 @@ const AuditLog = () => {
       rollback: 'rolled back',
     },
   ];
-
   const filteredData = auditData.filter((row) => {
     const q = searchQuery.toLowerCase();
     return (
@@ -66,15 +64,31 @@ const AuditLog = () => {
     );
   });
 
-  const currentTime = new Date().toLocaleTimeString('en-US', {
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
+  const [currentTime, setCurrentTime] = useState(() =>
+    new Date().toLocaleTimeString('en-US', {
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    })
+  );
 
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(
+        new Date().toLocaleTimeString('en-US', {
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        })
+      );
+    }, 1000);
+
+    // Cleanup interval on unmount to prevent memory leaks
+    return () => clearInterval(timer);
+  }, []);
   return (
-    <Layout>
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-6 flex flex-col gap-4 border-b border-slate-800 pb-6 sm:flex-row sm:items-start sm:justify-between">
@@ -99,7 +113,7 @@ const AuditLog = () => {
         {/* Table */}
         <AuditTable data={filteredData} />
       </div>
-    </Layout>
+
   );
 };
 

@@ -9,12 +9,11 @@ reviews:
     base_branches:
       - main
       - master
-
-chat:
-  auto_reply: true
-
-# Optional: Ignore specific files
-reviews:
+  
+  # Optional: Ignore specific files
   path_filters:
     - "!**/*.lock"
     - "!**/dist/**"
+
+chat:
+  auto_reply: true
