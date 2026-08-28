@@ -127,7 +127,7 @@ const Sidebar = ({ onClose }) => {
           return (
             <a
               key={idx}
-              href={item.href}
+              href={item.path}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-slate-800/60 hover:text-white transition-colors"
