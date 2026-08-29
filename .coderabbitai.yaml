@@ -1,0 +1,19 @@
+# .coderabbit.yaml
+reviews:
+  # Ensure auto-review is actually turned on
+  auto_review:
+    enabled: true
+    # Set to true if you want it to review Draft PRs
+    draft_prs: false 
+    # Set to true if you want it to review PRs from forks
+    base_branches:
+      - main
+      - master
+  
+  # Optional: Ignore specific files
+  path_filters:
+    - "!**/*.lock"
+    - "!**/dist/**"
+
+chat:
+  auto_reply: true
