@@ -1,14 +1,14 @@
 version: 2
 updates:
   - package-ecosystem: "npm"
-    directory: "/frontend"
+    directory: "/dashboard/frontend"
     schedule:
       interval: "weekly"
     target-branch: "dev"
     open-pull-requests-limit: 10
 
   - package-ecosystem: "uv"
-    directory: "/backend"
+    directory: "/dashboard/backend"
     schedule:
       interval: "weekly"
     target-branch: "dev"
