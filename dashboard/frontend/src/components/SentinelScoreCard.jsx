@@ -5,9 +5,9 @@ function SentinelScoreCard({ score, maxScore, nodesLabel, podsLabel }) {
   const offset = circumference - progress * circumference
 
   return (
-    <div className="bg-black border border-gray-800 rounded-xl p-5">
+    <div className="bg-[#0d1017] border border-gray-800 rounded-xl p-5 flex flex-col justify-between">
       <p className="text-gray-400 text-xs tracking-wide">SENTINEL SCORE</p>
-      <div className="relative flex justify-center my-4">
+      <div className="relative flex justify-center">
         <svg width="120" height="120" viewBox="0 0 120 120">
           <circle cx="60" cy="60" r={radius} fill="none" stroke="#1f2937" strokeWidth="10" />
           <circle
@@ -29,8 +29,14 @@ function SentinelScoreCard({ score, maxScore, nodesLabel, podsLabel }) {
         </div>
       </div>
       <div className="flex justify-center gap-4 text-xs text-gray-400 whitespace-nowrap">
-        <span>● {nodesLabel}</span>
-        <span>● {podsLabel}</span>
+        <span className="flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          {nodesLabel}
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+          {podsLabel}
+        </span>
       </div>
     </div>
   )

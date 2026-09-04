@@ -1,10 +1,13 @@
 function RemediationActionsList({ actions }) {
   return (
-    <div className="bg-black border border-gray-800 rounded-xl p-5">
+    <div className="bg-[#0d1017] border border-gray-800 rounded-xl p-5">
       <p className="text-gray-400 text-xs tracking-wide mb-4">RECENT REMEDIATION ACTIONS</p>
-      <div className="flex flex-col gap-4">
-        {actions.map((action) => (
-          <div key={action.id} className="flex items-center justify-between">
+      <div className="flex flex-col">
+        {actions.map((action, index) => (
+          <div
+            key={action.id}
+            className={`flex items-center justify-between py-3 ${index !== actions.length - 1 ? 'border-b border-gray-800' : ''}`}
+          >
             <div className="flex items-start gap-3">
               <span className={`w-2 h-2 rounded-full mt-1.5 ${action.status === 'Resolved' ? 'bg-emerald-400' : 'bg-amber-400'}`}></span>
               <div>
