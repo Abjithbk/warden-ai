@@ -20,7 +20,7 @@ function App() {
   return (
     <div style={{ display: 'flex' }}>
       <Sidebar />
-      <div style={{ flex: 1 }}>
+      <div className="bg-[#05060a] min-h-screen" style={{ flex: 1 }}>
         <Header />
         <div className="flex items-start gap-4 p-6">
           <SentinelScoreCard score={86} maxScore={100} nodesLabel="Nodes 5/5" podsLabel="Pods 42/45" />
