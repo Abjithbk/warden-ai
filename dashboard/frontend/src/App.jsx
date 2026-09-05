@@ -22,10 +22,10 @@ function App() {
       <Sidebar />
       <div className="bg-[#05070d] min-h-screen" style={{ flex: 1 }}>
         <Header />
-        <div className="flex items-stretch gap-4 p-6">
+        <div className="flex items-stretch gap-3 p-4">
           <SentinelScoreCard score={86} maxScore={100} nodesLabel="Nodes 5/5" podsLabel="Pods 42/45" />
-          <div className="flex-1 flex flex-col gap-4">
-            <div className="flex gap-4">
+          <div className="flex-1 flex flex-col gap-3">
+            <div className="flex gap-3">
               <StatCard value="2" label="Active incidents" subtext="+1 vs yesterday" accentColor="red" subtextColor="red" />
               <StatCard value="11" label="Auto-resolved today" subtext="92% success rate" accentColor="green" subtextColor="green" />
               <StatCard value="1m 48s" label="Avg. time to remediate" subtext="steady" accentColor="white" />
@@ -34,7 +34,7 @@ function App() {
             <RemediationActionsList actions={remediationActions} />
           </div>
         </div>
-        <div className="px-6 pb-6">
+        <div className="px-4 pb-4">
           <LiveIncidentFeed incidents={liveIncidents} />
         </div>
       </div>
