@@ -24,7 +24,7 @@ function LiveIncidentFeed({ incidents }) {
           </div>
         ))}
       </div>
-      <a href="#" className="text-indigo-400 text-sm mt-5 inline-block">View all incidents →</a>
+      <a href="/incidents" className="text-indigo-400 text-sm mt-5 inline-block">View all incidents →</a>
     </div>
   )
 }
