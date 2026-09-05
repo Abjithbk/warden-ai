@@ -17,7 +17,7 @@ const liveIncidents = [
 
 function Dashboard() {
   return (
-    <div className="bg-[#05070d] min-h-screen">
+    <div className="bg-slate-950 min-h-screen">
       <Header />
       <div className="flex items-stretch gap-3 p-4">
         <SentinelScoreCard score={86} maxScore={100} nodesLabel="Nodes 5/5" podsLabel="Pods 42/45" />

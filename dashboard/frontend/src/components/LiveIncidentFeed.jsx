@@ -1,6 +1,6 @@
 function LiveIncidentFeed({ incidents }) {
   return (
-    <div className="bg-[#0d1017] border border-gray-800 rounded-xl p-5">
+    <div className="bg-slate-900 border border-gray-800 rounded-xl p-5">
       <p className="text-gray-400 text-xs tracking-wide mb-4">LIVE INCIDENT FEED</p>
       <div className="flex flex-col">
         {incidents.map((incident, index) => (

@@ -5,7 +5,7 @@ function SentinelScoreCard({ score, maxScore, nodesLabel, podsLabel }) {
   const offset = circumference - progress * circumference
 
   return (
-    <div className="bg-[#0d1017] border border-gray-800 rounded-xl p-5 flex flex-col justify-between">
+    <div className="bg-slate-900 border border-gray-800 rounded-xl p-5 flex flex-col justify-between">
       <p className="text-gray-400 text-xs tracking-wide">SENTINEL SCORE</p>
       <div className="relative flex justify-center">
         <svg width="120" height="120" viewBox="0 0 120 120">
