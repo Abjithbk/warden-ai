@@ -1,15 +1,29 @@
 version: 2
 updates:
+  # Frontend — pnpm
   - package-ecosystem: "npm"
     directory: "/dashboard/frontend"
     schedule:
       interval: "weekly"
     target-branch: "dev"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 8
+    rebase-strategy: "disabled"
+    groups:
+      npm-updates:
+        patterns:
+          - "*"
+    ignore:
+      - dependency-name: "nanoid"
 
+  # Backend — uv
   - package-ecosystem: "uv"
     directory: "/dashboard/backend"
     schedule:
       interval: "weekly"
     target-branch: "dev"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
+    rebase-strategy: "disabled"
+    groups:
+      uv-updates:
+        patterns:
+          - "*"
