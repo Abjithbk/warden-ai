@@ -1,17 +1,32 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="Warden Dashboard API")
+from backend.api.healthz import router as healthz_router
+from backend.core.config import get_settings
+from backend.core.logging import configure_logging, logger
+
+settings = get_settings()
+configure_logging(settings.environment)
+
+app = FastAPI(title=settings.app_name)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Routers that don't carry the /api/v1 prefix (e.g. health checks)
+app.include_router(healthz_router)
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    logger.info("app_startup", environment=settings.environment)
+
 
 @app.get("/")
-def read_root():
+def read_root() -> dict[str, str]:
     return {"status": "Warden backend is running"}
