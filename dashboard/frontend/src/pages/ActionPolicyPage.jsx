@@ -69,14 +69,17 @@ function ActionPolicyPage() {
         </div>
       </div>
 
-      <div className="mt-6">
-        <PolicyCard
-          icon="RotateCcw"
-          title="Pod Restart"
-          description="Deletes a crash-looping or unresponsive pod so the Deployment controller recreates it fresh."
-          guardrails={['Max 3 restarts per pod per hour', 'Pre-action state check for idempotency']}
-          enabled={true}
-        />
+      <div className="mt-6 grid grid-cols-2 gap-6">
+        {policies.map((policy) => (
+          <PolicyCard
+            key={policy.title}
+            icon={policy.icon}
+            title={policy.title}
+            description={policy.description}
+            guardrails={policy.guardrails}
+            enabled={policy.enabled}
+          />
+        ))}
       </div>
     </div>
   );
