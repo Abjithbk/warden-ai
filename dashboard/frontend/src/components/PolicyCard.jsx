@@ -16,7 +16,7 @@ function PolicyCard({ icon, title, description, guardrails, enabled }) {
       <button
         onClick={() => setIsEnabled(!isEnabled)}
         className={`absolute top-6 right-6 h-3 w-3 rounded-full ${
-          isEnabled ? 'bg-emerald-500' : 'bg-slate-800'
+          isEnabled ? 'opacity-0' : 'bg-slate-950'
         }`}
       />
       <div className="flex items-center gap-3">
