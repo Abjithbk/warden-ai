@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.19.2",
+    "faker>=40.38.0",
     "fastapi>=0.141.1",
     "pydantic-settings>=2.15.0",
     "python-dotenv>=1.2.2",
@@ -28,3 +29,8 @@ build-backend = "uv_build"
 dev = [
     "ruff>=0.16.5",
 ]
+
+[tool.ruff.lint]
+# B008: FastAPI's Depends()/Query()/etc. in default args is the required
+# pattern, not a bug - this flag is a well-known false positive for FastAPI.
+extend-ignore = ["B008"]
