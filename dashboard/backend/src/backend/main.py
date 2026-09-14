@@ -18,7 +18,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Routers that don't carry the /api/v1 prefix (e.g. health checks)
 app.include_router(healthz_router)
 
 

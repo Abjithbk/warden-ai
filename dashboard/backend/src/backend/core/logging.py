@@ -23,10 +23,8 @@ def configure_logging(environment: str = "local") -> None:
     ]
 
     if environment == "local":
-        # Pretty, colored output while developing
         renderer = structlog.dev.ConsoleRenderer()
     else:
-        # Real JSON lines in staging/production for log aggregation
         renderer = structlog.processors.JSONRenderer()
 
     structlog.configure(
