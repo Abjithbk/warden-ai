@@ -8,6 +8,9 @@ from backend.models.enums import IncidentSeverity, IncidentStatus
 from backend.schemas.incident import IncidentListOut
 from backend.services import incidents as incidents_service
 
+from backend.schemas.incident_detail import IncidentDetailOut
+from backend.services import incident_service
+
 router = APIRouter(prefix="/incidents", tags=["incidents"])
 
 
@@ -50,4 +53,31 @@ def reject(incident_id: int, body: RejectRequest, db: Session = Depends(get_db))
         actioned_by=approval.actioned_by,
         actioned_at=approval.actioned_at,
         rejection_reason=approval.rejection_reason,
-    )    
+    )  
+
+
+
+
+@router.get("/{incident_id}", response_model=IncidentDetailOut)
+def get_incident(incident_id: int, db: Session = Depends(get_db)):
+    result = incident_service.get_incident_detail(db, incident_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Incident not found")
+    incident = result["incident"]
+    return IncidentDetailOut(
+        id=incident.id,
+        title=incident.title,
+        service=incident.service,
+        namespace=incident.namespace,
+        severity=incident.severity,
+        status=incident.status,
+        created_at=incident.created_at,
+        updated_at=incident.updated_at,
+        resolved_at=incident.resolved_at,
+        detections=result["detections"],
+        agent_decisions=result["agent_decisions"],
+        policy_checks=result["policy_checks"],
+        approval_requests=result["approval_requests"],
+        remediation_actions=result["remediation_actions"],
+        audit_log=result["audit_log"],
+    )      
