@@ -1,8 +1,8 @@
 const statusConfig = {
   'Awaiting Approval': {
-    bg: 'bg-amber-500/10',
-    text: 'text-amber-400',
-    border: 'border-amber-500/30',
+    bg: 'bg-indigo-950/60',
+    text: 'text-indigo-300',
+    border: 'border-indigo-500/30',
   },
   Remediating: {
     bg: 'bg-yellow-500/10',
