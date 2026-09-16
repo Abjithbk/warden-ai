@@ -8,7 +8,7 @@ Incident Detail page possible.
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum, String
+from sqlalchemy import Enum, String, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base
@@ -42,7 +42,7 @@ class Incident(Base, TimestampMixin):
         default=IncidentStatus.active,
     )
 
-    resolved_at: Mapped[datetime | None] = mapped_column(nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     detections: Mapped[list["Detection"]] = relationship(
         back_populates="incident", order_by="Detection.created_at", cascade="all, delete-orphan"
