@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from backend.models.enums import IncidentSeverity, IncidentStatus
+from backend.models.approval_request import ApprovalRequest
 from backend.models.incident import Incident
 from backend.models.remediation_action import RemediationAction
 
@@ -81,3 +82,38 @@ def count_actions_last_24h(db: Session) -> int:
         .select_from(RemediationAction)
         .where(RemediationAction.created_at >= cutoff)
     ).scalar_one()
+
+
+def get_recent_actions(db: Session, *, limit: int = 10) -> list[dict]:
+    """
+    Last `limit` remediation actions, newest first, joined out to the
+    incident title/service and the approver identity. actioned_by lives on
+    ApprovalRequest, not RemediationAction, so this joins through
+    approval_request_id rather than reading it off the action directly.
+    """
+    rows = (
+        db.execute(
+            select(RemediationAction, Incident.title, Incident.service, ApprovalRequest.actioned_by)
+            .join(Incident, Incident.id == RemediationAction.incident_id)
+            .join(ApprovalRequest, ApprovalRequest.id == RemediationAction.approval_request_id)
+            .order_by(RemediationAction.created_at.desc())
+            .limit(limit)
+        )
+        .all()
+    )
+
+    return [
+        {
+            "id": action.id,
+            "incident_id": action.incident_id,
+            "incident_title": title,
+            "service": service,
+            "action_type": action.action_type,
+            "target": action.target,
+            "status": action.status,
+            "actioned_by": actioned_by,
+            "started_at": action.started_at,
+            "completed_at": action.completed_at,
+        }
+        for action, title, service, actioned_by in rows
+    ]

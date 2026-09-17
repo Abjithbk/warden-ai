@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     # --- Database ---
     # SQLite for local dev by default. Swap to Postgres later by changing
     # this one value, e.g. postgresql+psycopg://user:pass@host:5432/warden
-    database_url: str = "sqlite:///./warden.db"
+    database_url: str 
 
     # --- Slack ---
     slack_signing_secret: str = ""
