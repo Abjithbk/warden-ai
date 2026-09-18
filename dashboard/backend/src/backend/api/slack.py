@@ -10,6 +10,7 @@ from urllib.parse import parse_qs
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
+from backend.core.limiter import limiter
 
 from backend.core.config import get_settings
 from backend.core.logging import logger
@@ -23,6 +24,7 @@ DEFAULT_SLACK_REJECTION_REASON = "Rejected via Slack"
 
 
 @router.post("/actions")
+@limiter.limit("20/minute")
 async def slack_actions(request: Request, db: Session = Depends(get_db)) -> dict:
     settings = get_settings()
     raw_body = await request.body()
