@@ -19,7 +19,7 @@ const IncidentDetailPage = () => {
   }, []);
 
   const incidentData = {
-    id: id || 'WRD-2299',
+    id: id || 'inc-001',
     service: 'auth-service',
     title: 'OOMKilled / restart loop',
     namespace: 'production-auth',
@@ -53,7 +53,7 @@ const IncidentDetailPage = () => {
             <p className="mt-1 font-mono text-xs sm:text-sm text-slate-400">
               {incidentData.namespace}
               <span className="mx-2 text-slate-600">·</span>
-              <span>incident {incidentData.id.startsWith('WRD') ? incidentData.id : `WRD-2299`}</span>
+              <span>incident {incidentData.id}</span>
             </p>
           </div>
 

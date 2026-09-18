@@ -6,7 +6,9 @@ function LiveIncidentFeed({ incidents }) {
       <p className="text-gray-400 text-xs tracking-wide mb-4">LIVE INCIDENT FEED</p>
       <div className="flex flex-col">
         {incidents.map((incident, index) => {
-          const targetId = incident.id === 1 ? 'inc-001' : incident.id;
+          const targetId = typeof incident.id === 'number'
+            ? `inc-${String(incident.id).padStart(3, '0')}`
+            : incident.id;
           return (
             <Link
               key={incident.id}

@@ -16,6 +16,7 @@ const IncidentWorkflowSteps = ({ onApprovalChange }) => {
   const [approvalStatus, setApprovalStatus] = useState('awaiting'); // 'awaiting' | 'approving' | 'approved' | 'denied'
 
   const handleApprove = () => {
+    if (approvalStatus !== 'awaiting') return;
     setApprovalStatus('approving');
     if (onApprovalChange) onApprovalChange('Remediating');
 
@@ -123,13 +124,12 @@ const IncidentWorkflowSteps = ({ onApprovalChange }) => {
 
       {/* STEP 4: HUMAN APPROVAL */}
       <div
-        className={`rounded-xl border transition-all duration-300 bg-slate-900/60 p-5 shadow-lg backdrop-blur-sm ${
-          approvalStatus === 'awaiting'
+        className={`rounded-xl border transition-all duration-300 bg-slate-900/60 p-5 shadow-lg backdrop-blur-sm ${approvalStatus === 'awaiting'
             ? 'border-indigo-500/40 shadow-indigo-950/20'
             : approvalStatus === 'approved'
-            ? 'border-emerald-500/40'
-            : 'border-rose-500/40'
-        }`}
+              ? 'border-emerald-500/40'
+              : 'border-rose-500/40'
+          }`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
@@ -229,11 +229,10 @@ const IncidentWorkflowSteps = ({ onApprovalChange }) => {
               <CircleDot className="h-4 w-4 text-slate-500" />
             )}
             <h4
-              className={`text-xs font-bold uppercase tracking-wider ${
-                approvalStatus === 'approved'
+              className={`text-xs font-bold uppercase tracking-wider ${approvalStatus === 'approved'
                   ? 'text-slate-200'
                   : 'text-slate-400'
-              }`}
+                }`}
             >
               STEP 5: ACT
             </h4>
@@ -286,11 +285,10 @@ const IncidentWorkflowSteps = ({ onApprovalChange }) => {
               <CircleDot className="h-4 w-4 text-slate-500" />
             )}
             <h4
-              className={`text-xs font-bold uppercase tracking-wider ${
-                approvalStatus === 'approved'
+              className={`text-xs font-bold uppercase tracking-wider ${approvalStatus === 'approved'
                   ? 'text-slate-200'
                   : 'text-slate-400'
-              }`}
+                }`}
             >
               STEP 6: OBSERVE
             </h4>
