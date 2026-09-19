@@ -1,0 +1,12 @@
+# Values for the kube-prometheus-stack release "prometheus" (chart 89.1.0).
+# Apply: helm upgrade prometheus prometheus-community/kube-prometheus-stack \
+#          --version 89.1.0 -n monitoring -f monitoring/kube-prometheus-stack-values.yaml
+grafana:
+  enabled: false   # Grafana is deployed separately
+
+alertmanager:
+  alertmanagerSpec:
+    # Warden alerts carry no "namespace" label (SLI rules aggregate by service),
+    # so disable the operator's default namespace matcher on AlertmanagerConfig routes.
+    alertmanagerConfigMatcherStrategy:
+      type: None
