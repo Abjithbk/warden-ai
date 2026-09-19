@@ -3,10 +3,9 @@ import Layout from './components/layout/Layout';
 import AuditLog from './pages/AuditLog';
 import Dashboard from './pages/Dashboard';
 import ActionPolicyPage from './pages/ActionPolicyPage';
-
-// Placeholder pages for other routes
-const Incidents = () => <div className="p-8 text-white"><h1 className="text-2xl font-bold">Incidents</h1></div>;
-const Settings = () => <div className="p-8 text-white"><h1 className="text-2xl font-bold">Settings</h1></div>;
+import IncidentsPage from './pages/IncidentsPage';
+import IncidentDetailPage from './pages/IncidentDetailPage';
+import SettingsPage from './pages/SettingsPage';
 
 function App() {
   return (
@@ -16,9 +15,10 @@ function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/audit" element={<AuditLog />} />
-          <Route path="/incidents" element={<Incidents />} />
+          <Route path="/incidents" element={<IncidentsPage />} />
+          <Route path="/incidents/:id" element={<IncidentDetailPage />} />
           <Route path="/policy" element={<ActionPolicyPage />} />
-          <Route path="/settings" element={<Settings />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Routes>
       </Layout>
     </Router>
