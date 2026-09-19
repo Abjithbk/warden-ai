@@ -144,9 +144,12 @@ const IncidentWorkflowSteps = ({ onApprovalChange }) => {
       <div
         className={`rounded-xl border transition-all duration-300 bg-slate-900/60 p-5 shadow-lg backdrop-blur-sm ${approvalStatus === 'awaiting'
           ? 'border-indigo-500/40 shadow-indigo-950/20'
-          : approvalStatus === 'approved'
-            ? 'border-emerald-500/40'
-            : 'border-rose-500/40'
+          : approvalStatus === 'approving'
+            ? 'border-amber-500/40'
+            : approvalStatus === 'approved'
+              ? 'border-emerald-500/40'
+              : 'border-rose-500/40'
+
           }`}
       >
         <div className="flex items-center justify-between">
