@@ -1,0 +1,44 @@
+name: Detector Receiver
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "detector/receiver/**"
+      - ".github/workflows/ci-detector.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "detector/receiver/**"
+      - ".github/workflows/ci-detector.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: detector/receiver
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.12.17"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run tests
+        run: uv run pytest -q
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t detector-receiver:ci detector/receiver
