@@ -19,12 +19,13 @@ function LiveIncidentFeed({ incidents }) {
             >
               <div className="flex items-start gap-3">
                 <span
+                  aria-hidden="true"
                   className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
                     incident.status === 'Awaiting Approval'
                       ? 'bg-indigo-400'
                       : 'bg-amber-400'
                   }`}
-                ></span>
+                />
                 <div>
                   <p className="text-white text-sm font-semibold group-hover:text-indigo-300 transition-colors">
                     {incident.title}

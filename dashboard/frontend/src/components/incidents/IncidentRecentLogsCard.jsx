@@ -51,8 +51,11 @@ const IncidentRecentLogsCard = ({ logs = mockLogs }) => {
 
       {/* Log lines */}
       <div className="space-y-3 font-mono text-xs leading-relaxed">
-        {logs.map((log, idx) => (
-          <div key={idx} className="flex items-baseline gap-2">
+        {logs.map((log) => (
+          <div
+            key={log.id ?? `${log.time}-${log.level}-${log.message}`}
+            className="flex items-baseline gap-2"
+          >
             <span className="text-slate-500 flex-shrink-0">{log.time}</span>
             <span
               className={`flex-shrink-0 font-medium ${

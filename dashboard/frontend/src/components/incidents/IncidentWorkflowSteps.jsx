@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   CircleDot,
   CheckCircle2,
@@ -13,24 +13,43 @@ import {
 
 const IncidentWorkflowSteps = ({ onApprovalChange }) => {
   const [approvalStatus, setApprovalStatus] = useState('awaiting'); // 'awaiting' | 'approving' | 'approved' | 'denied'
+  const timeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleApprove = () => {
     if (approvalStatus !== 'awaiting') return;
     setApprovalStatus('approving');
     if (onApprovalChange) onApprovalChange('Remediating');
 
-    setTimeout(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(() => {
       setApprovalStatus('approved');
       if (onApprovalChange) onApprovalChange('Resolved');
     }, 1500);
   };
 
   const handleDeny = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
     setApprovalStatus('denied');
     if (onApprovalChange) onApprovalChange('Warning');
   };
 
   const handleReset = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
     setApprovalStatus('awaiting');
     if (onApprovalChange) onApprovalChange('Awaiting Approval');
   };
