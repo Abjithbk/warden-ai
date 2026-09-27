@@ -7,7 +7,8 @@ Requires, on EC2, in a separate background shell:
   kubectl port-forward -n monitoring svc/prometheus-operated 9090:9090 &
   kubectl port-forward -n monitoring svc/tempo 3200:3200 &
 """
-
+from dotenv import load_dotenv
+load_dotenv()
 import requests
 from kubernetes import client, config
 

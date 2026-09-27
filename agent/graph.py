@@ -4,9 +4,10 @@ M4.3 (tools.py). This graph is diagnosis-only; M5-M7 will extend it
 with policy, approval, and execution nodes.
 """
 
-import os
 from typing import TypedDict
-
+from dotenv import load_dotenv
+load_dotenv()
+import os
 from langchain_groq import ChatGroq
 from langgraph.graph import StateGraph, END
 

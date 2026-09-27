@@ -4,3 +4,4 @@ context.md
 .venv/
 .pytest_cache/
 *.dist-info/
+agent/.env
