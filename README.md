@@ -128,7 +128,7 @@ warden/
 - Kind
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/) — Python package/project manager
-- Node.js 18+ and [pnpm](https://pnpm.io/)
+- Node.js ^20.19.0 or >=22.12.0 and [pnpm](https://pnpm.io/)
 - An LLM API key (Anthropic or OpenAI)
 
 > **Note:** the dashboard backend and frontend run directly on your machine during development — Docker/Kubernetes is only needed later, for the sample microservices Warden actually monitors and remediates.
