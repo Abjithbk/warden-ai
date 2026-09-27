@@ -1,4 +1,4 @@
-import React, { useState,useEffect } from 'react';
+import { useState,useEffect } from 'react';
 import SearchBar from '../components/common/SearchBar';
 import AuditTable from '../components/audit/AuditTable';
 
