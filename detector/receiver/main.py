@@ -9,7 +9,7 @@ import logging
 from collections import OrderedDict
 from datetime import datetime, timezone
 from typing import Literal
-
+from threading import RLock
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
@@ -53,7 +53,7 @@ class Incident(BaseModel):
 
 app = FastAPI(title="Warden Detector Receiver")
 incidents: "OrderedDict[str, Incident]" = OrderedDict()
-
+incidents_lock = RLock()  
 
 def normalize(alert: AMAlert) -> Incident:
     labels, ann = alert.labels, alert.annotations
@@ -85,17 +85,19 @@ def healthz() -> dict:
 def alertmanager_webhook(payload: AMWebhook) -> dict:
     for alert in payload.alerts:
         incident = normalize(alert)
-        incidents[incident.fingerprint] = incident
-        incidents.move_to_end(incident.fingerprint)
-        while len(incidents) > MAX_INCIDENTS:
-            incidents.popitem(last=False)
+        with incidents_lock:
+            incidents[incident.fingerprint] = incident
+            incidents.move_to_end(incident.fingerprint)
+            while len(incidents) > MAX_INCIDENTS:
+                incidents.popitem(last=False)
         log.info(json.dumps({"event": "incident", **incident.model_dump()}))
     return {"received": len(payload.alerts)}
 
 
 @app.get("/incidents")
 def list_incidents(status: Literal["firing", "resolved"] | None = None) -> list[Incident]:
-    items = list(incidents.values())
+    with incidents_lock:
+        items = list(incidents.values())
     if status:
         items = [i for i in items if i.status == status]
     return list(reversed(items))
