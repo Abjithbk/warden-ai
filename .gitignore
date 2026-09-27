@@ -1,3 +1,6 @@
 # AI Context
 CONTEXT.md
 context.md
+.venv/
+.pytest_cache/
+*.dist-info/
