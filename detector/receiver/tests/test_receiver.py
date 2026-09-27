@@ -121,3 +121,93 @@ def test_store_is_capped_and_evicts_oldest(client, monkeypatch):
 
     fingerprints = [i["fingerprint"] for i in client.get("/incidents").json()]
     assert fingerprints == ["three", "two"]
+
+
+def test_stale_firing_after_resolved_ignored(client):
+    fp = "test-fingerprint-stale-order"
+    resolved_payload = {
+        "alerts": [{
+            "status": "resolved",
+            "labels": {"alertname": "Test", "service": "test-svc"},
+            "annotations": {},
+            "startsAt": "2026-09-27T10:00:00Z",
+            "endsAt": "2026-09-27T10:05:00Z",
+            "fingerprint": fp,
+        }]
+    }
+    stale_firing_payload = {
+        "alerts": [{
+            "status": "firing",
+            "labels": {"alertname": "Test", "service": "test-svc"},
+            "annotations": {},
+            "startsAt": "2026-09-27T09:00:00Z",
+            "fingerprint": fp,
+        }]
+    }
+
+    client.post("/webhook/alertmanager", json=resolved_payload)
+    client.post("/webhook/alertmanager", json=stale_firing_payload)
+
+    incidents = client.get("/incidents").json()
+    incident = next(i for i in incidents if i["fingerprint"] == fp)
+    assert incident["status"] == "resolved"
+
+
+def test_stale_firing_after_resolved_ignored(client):
+    fp = "test-fingerprint-stale-order"
+    resolved_payload = {
+        "alerts": [{
+            "status": "resolved",
+            "labels": {"alertname": "Test", "service": "test-svc"},
+            "annotations": {},
+            "startsAt": "2026-09-27T10:00:00Z",
+            "endsAt": "2026-09-27T10:05:00Z",
+            "fingerprint": fp,
+        }]
+    }
+    stale_firing_payload = {
+        "alerts": [{
+            "status": "firing",
+            "labels": {"alertname": "Test", "service": "test-svc"},
+            "annotations": {},
+            "startsAt": "2026-09-27T09:00:00Z",
+            "fingerprint": fp,
+        }]
+    }
+
+    client.post("/webhook/alertmanager", json=resolved_payload)
+    client.post("/webhook/alertmanager", json=stale_firing_payload)
+
+    incidents = client.get("/incidents").json()
+    incident = next(i for i in incidents if i["fingerprint"] == fp)
+    assert incident["status"] == "resolved"
+
+
+def test_stale_firing_after_resolved_ignored(client):
+    fp = "test-fingerprint-stale-order"
+    resolved_payload = {
+        "alerts": [{
+            "status": "resolved",
+            "labels": {"alertname": "Test", "service": "test-svc"},
+            "annotations": {},
+            "startsAt": "2026-09-27T10:00:00Z",
+            "endsAt": "2026-09-27T10:05:00Z",
+            "fingerprint": fp,
+        }]
+    }
+    stale_firing_payload = {
+        "alerts": [{
+            "status": "firing",
+            "labels": {"alertname": "Test", "service": "test-svc"},
+            "annotations": {},
+            "startsAt": "2026-09-27T09:00:00Z",
+            "fingerprint": fp,
+        }]
+    }
+
+    client.post("/webhook/alertmanager", json=resolved_payload)
+    client.post("/webhook/alertmanager", json=stale_firing_payload)
+
+    incidents = client.get("/incidents").json()
+    incident = next(i for i in incidents if i["fingerprint"] == fp)
+    assert incident["status"] == "resolved"

@@ -86,10 +86,12 @@ def alertmanager_webhook(payload: AMWebhook) -> dict:
     for alert in payload.alerts:
         incident = normalize(alert)
         with incidents_lock:
-            incidents[incident.fingerprint] = incident
-            incidents.move_to_end(incident.fingerprint)
-            while len(incidents) > MAX_INCIDENTS:
-                incidents.popitem(last=False)
+            existing = incidents.get(incident.fingerprint)
+            if existing is None or incident.started_at >= existing.started_at:
+                incidents[incident.fingerprint] = incident
+                incidents.move_to_end(incident.fingerprint)
+                while len(incidents) > MAX_INCIDENTS:
+                    incidents.popitem(last=False)
         log.info(json.dumps({"event": "incident", **incident.model_dump()}))
     return {"received": len(payload.alerts)}
 
