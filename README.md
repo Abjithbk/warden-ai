@@ -17,30 +17,30 @@ Incident response today is manual and slow. Engineers correlate dashboards, logs
 ## Architecture
 
 ```
-Microservices (Kind cluster)
-        │
-        ▼
-Prometheus + OpenTelemetry (metrics/traces)
-        │
-        ▼
-Incident Detector (threshold + anomaly rules)
-        │
-        ▼
+Microservices (Kind cluster, Google Online Boutique)
+│
+▼
+Prometheus + OpenTelemetry (metrics) ──► OTel Collector → Tempo → MinIO (traces)
+│
+▼
+Incident Detector (burn-rate / multi-window alerting, SLO error-budget style)
+│
+▼
 Warden Agent (LangGraph + LLM, RAG-grounded)
-        │
-        ▼
+│
+▼
 OPA Policy Check
-        │
-        ├── Low risk  → Auto-execute
-        └── High risk → Human Approval (Dashboard)
-        │
-        ▼
+│
+├── Low risk → Auto-execute
+└── High risk → Human Approval (Slack + Dashboard)
+│
+▼
 Kubernetes Executor
-        │
-        ▼
+│
+▼
 Rollback Monitor (verify → revert if unresolved)
-        │
-        ▼
+│
+▼
 Dashboard (live status + audit log)
 ```
 
@@ -48,90 +48,88 @@ Dashboard (live status + audit log)
 
 ## Key Capabilities
 
-- **Incident detection** — threshold and anomaly rules over live Prometheus metrics and OpenTelemetry traces
-- **AI reasoning** — a LangGraph agent, grounded via RAG, correlates signals and drafts a remediation plan from real system context
+- **Incident detection** — burn-rate / multi-window alerting over live Prometheus metrics (SLO error-budget methodology, not static thresholds), grounded in the Google SRE Workbook
+- **AI reasoning** — a LangGraph agent, grounded via RAG, correlates metrics and traces and drafts a remediation plan from real system context
 - **Policy guardrails** — every proposed action is checked against OPA rules (e.g. minimum replica counts, protected namespaces) before execution
-- **Human-in-the-loop** — high-risk actions pause for explicit approval on a live dashboard
+- **Human-in-the-loop** — high-risk actions pause for explicit approval via Slack interactive buttons and a live dashboard (combined by design — Slack for speed, Dashboard as the system of record)
 - **Auto-rollback** — if a fix doesn't resolve the incident within a timeout, Warden reverts it automatically
-- **Chaos validation** — fault injection (pod kill, latency injection) proves the full detect → decide → guard → act → rollback loop
+- **Chaos validation** — fault injection via Chaos Mesh (plus manual pod-kill/network-delay) proves the full detect → decide → guard → act → rollback loop
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Cluster | Kind (Kubernetes in Docker) |
-| Monitoring | Prometheus, Grafana, OpenTelemetry |
-| Agent | LangGraph, LangChain, LLM API (Anthropic/OpenAI) |
-| Policy | Open Policy Agent (OPA) / Rego |
-| Executor | Python Kubernetes client |
-| Dashboard backend | Python, FastAPI, managed with **uv** |
-| Dashboard frontend | React (Vite), managed with **pnpm** |
-| Chaos testing | Chaos Mesh / Litmus, k6 |
+| Layer              | Technology                                       |
+| ------------------ | ------------------------------------------------ |
+| Cluster            | Kind (Kubernetes in Docker), 3-node               |
+| Monitoring         | Prometheus, Grafana, OpenTelemetry                |
+| Tracing            | OTel Collector, Tempo, MinIO (S3-compatible store)|
+| Agent              | LangGraph, LangChain, Groq (`openai/gpt-oss-120b`)|
+| Policy             | Open Policy Agent (OPA) / Rego                   |
+| Executor           | Python Kubernetes client                         |
+| Human approval     | Slack (interactive buttons) + Dashboard          |
+| Dashboard backend  | Python, FastAPI, managed with **uv**             |
+| Dashboard frontend | React (Vite), managed with **pnpm**              |
+| Chaos testing      | Chaos Mesh, k6                                    |
 
 ---
 
 ## Repository Structure
 
 ```
-warden/
+warden-ai/
 ├── README.md
 ├── .gitignore
-├── docs/                       # architecture notes, diagrams, meeting notes
-├── cluster/                    # Kind cluster config, sample microservices
-│   ├── kind-config.yaml
-│   └── sample-services/
-├── monitoring/                 # Prometheus, Grafana, OTel configs
-│   ├── prometheus/
-│   └── grafana/dashboards/
-├── detector/                   # Incident detection logic
-├── agent/                      # LangGraph agent, prompts, RAG
-│   ├── graph.py
-│   ├── prompts/
-│   └── rag/
-├── policies/                   # OPA / Rego policy files
-├── executor/                   # Executes approved actions on the cluster
-│   ├── k8s_client.py
-│   └── actions.py
-├── rollback/                   # Snapshot, verification, rollback logic
-│   ├── snapshot.py
-│   ├── verifier.py
-│   └── rollback_manager.py
-├── dashboard/                  # Human approval web app
-│   ├── backend/                # FastAPI app (managed with uv)
-│   │   ├── pyproject.toml
-│   │   ├── uv.lock
-│   │   ├── .venv/               # created by uv, gitignored
-│   │   └── src/
-│   │       └── backend/
-│   │           ├── __init__.py
-│   │           └── main.py
-│   └── frontend/                # React app (Vite, managed with pnpm)
-│       ├── src/
-│       ├── public/
-│       ├── package.json
-│       └── pnpm-lock.yaml
-├── chaos/                      # Fault injection scenarios, load scripts
-├── tests/                      # Unit and integration tests
-├── pyproject.toml               # Root Python project (agent, detector, executor, rollback) — managed with uv
+├── docs/ # architecture notes, ADRs, diagrams, meeting notes
+├── cluster/ # Kind cluster config
+│ └── kind-config.yaml
+├── monitoring/ # Prometheus, Grafana, OTel, Tempo configs
+│ ├── prometheus/
+│ └── grafana/dashboards/
+├── detector/ # Incident detection logic (burn-rate alerting)
+├── agent/ # LangGraph agent, prompts, RAG
+│ ├── graph.py
+│ ├── prompts/
+│ └── rag/
+├── policies/ # OPA / Rego policy files
+├── executor/ # Executes approved actions on the cluster
+│ ├── k8s_client.py
+│ └── actions.py
+├── rollback/ # Snapshot, verification, rollback logic
+│ ├── snapshot.py
+│ ├── verifier.py
+│ └── rollback_manager.py
+├── dashboard/ # Human approval web app
+│ ├── backend/ # FastAPI app (managed with uv)
+│ │ ├── pyproject.toml
+│ │ ├── uv.lock
+│ │ └── src/backend/
+│ └── frontend/ # React app (Vite, managed with pnpm)
+│ ├── src/
+│ └── package.json
+├── chaos/ # Fault injection scenarios, load scripts
+├── tests/ # Unit and integration tests
+├── pyproject.toml # Root Python project — managed with uv
 └── uv.lock
 ```
+
+> The demo application Warden monitors (Google Online Boutique, `GoogleCloudPlatform/microservices-demo`) is deployed separately to the `warden-demo` namespace and is not vendored into this repo. Instrumented service source will be published as a branch on a fork, linked here once finalized.
 
 ---
 
 ## Getting Started
 
 ### Prerequisites
-- Docker Desktop (only needed once you start deploying to the Kind cluster — not required to run the dashboard locally)
+
+- Docker Desktop
 - kubectl
 - Kind
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/) — Python package/project manager
 - Node.js ^20.19.0 or >=22.12.0 and [pnpm](https://pnpm.io/)
-- An LLM API key (Anthropic or OpenAI)
+- A Groq API key
 
-> **Note:** the dashboard backend and frontend run directly on your machine during development — Docker/Kubernetes is only needed later, for the sample microservices Warden actually monitors and remediates.
+> The dashboard backend and frontend can run locally during development — Docker/Kind is needed for the cluster components.
 
 ### 1. Clone the repo
 ```bash
@@ -143,7 +141,7 @@ cd warden
 Create a `.env` file inside `dashboard/backend/` (never commit this — it's gitignored):
 ```
 LLM_API_KEY=your_key_here
-KUBE_CONTEXT=kind-warden-cluster
+KUBE_CONTEXT=kind-warden
 ```
 
 ### 3. Run the backend
@@ -176,21 +174,18 @@ kind create cluster --config cluster/kind-config.yaml --name warden-cluster
 
 ## Project Status
 
-This project is under active development for a college major project. See `docs/` for design notes and `TASKS.md` for the current milestone tracker.
+Under active development for a final-year capstone project. See `docs/` for design notes and `TASKS.md` for the current milestone tracker.
 
 ---
 
 ## Team
 
-- [Name] — [Role/focus area]
-- [Name] — [Role/focus area]
-- [Name] — [Role/focus area]
-- [Name] — [Role/focus area]
+- Johny — [role/focus area]
+- Abjith — [role/focus area]
+- aiswaryanair79 — [role/focus area]
 
 ---
 
 ## References
 
 See `docs/references.md` for the literature survey sources used in this project.
-
----
