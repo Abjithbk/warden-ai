@@ -1,10 +1,9 @@
-
 """
 Audit trail endpoints — the append-only record every pipeline stage writes
 to, per REQ-7.x (Dashboard/Audit).
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -27,7 +26,12 @@ def get_audit_log(
     db: Session = Depends(get_db),
 ) -> AuditLogListOut:
     items, total = audit_service.list_audit_entries(
-        db, incident_id=incident_id, actor=actor, action=action, limit=limit, offset=offset
+        db,
+        incident_id=incident_id,
+        actor=actor,
+        action=action,
+        limit=limit,
+        offset=offset,
     )
     return AuditLogListOut(items=items, total=total, limit=limit, offset=offset)
 
@@ -39,8 +43,10 @@ def export_audit_log(
     action: str | None = Query(default=None),
     db: Session = Depends(get_db),
 ) -> StreamingResponse:
-    csv_content = audit_service.export_audit_csv(db, incident_id=incident_id, actor=actor, action=action)
-    filename = f"warden_audit_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+    csv_content = audit_service.export_audit_csv(
+        db, incident_id=incident_id, actor=actor, action=action
+    )
+    filename = f"warden_audit_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.csv"
     return StreamingResponse(
         iter([csv_content]),
         media_type="text/csv",

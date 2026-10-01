@@ -20,10 +20,18 @@ class Detection(Base, TimestampMixin):
     __tablename__ = "detections"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    incident_id: Mapped[int] = mapped_column(ForeignKey("incidents.id"), nullable=False, index=True)
+    incident_id: Mapped[int] = mapped_column(
+        ForeignKey("incidents.id"), nullable=False, index=True
+    )
 
-    source: Mapped[str] = mapped_column(String(100), nullable=False)  # e.g. "prometheus", "k8s-events"
-    signal: Mapped[str] = mapped_column(String(255), nullable=False)  # e.g. "OOMKilled", "HighLatency"
-    raw_payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    source: Mapped[str] = mapped_column(
+        String(100), nullable=False
+    )  # e.g. "prometheus", "k8s-events"
+    signal: Mapped[str] = mapped_column(
+        String(255), nullable=False
+    )  # e.g. "OOMKilled", "HighLatency"
+    raw_payload: Mapped[dict[str, Any]] = mapped_column(
+        JSON, nullable=False, default=dict
+    )
 
     incident: Mapped["Incident"] = relationship(back_populates="detections")

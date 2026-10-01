@@ -1,7 +1,9 @@
 """Pydantic schema for GET /api/v1/overview/stats."""
 
-from pydantic import BaseModel
 from datetime import datetime
+
+from pydantic import BaseModel
+
 from backend.models.enums import ActionStatus, ActionType
 
 
@@ -11,6 +13,7 @@ class OverviewStatsOut(BaseModel):
     auto_resolved_today: int
     avg_remediation_seconds: float | None = None
     actions_last_24h: int
+
 
 class RecentActionOut(BaseModel):
     id: int
@@ -24,4 +27,4 @@ class RecentActionOut(BaseModel):
     started_at: datetime | None
     completed_at: datetime | None
 
-    model_config = {"from_attributes": True}    
+    model_config = {"from_attributes": True}

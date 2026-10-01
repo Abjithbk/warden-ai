@@ -20,13 +20,19 @@ class PolicyCheck(Base, TimestampMixin):
     __tablename__ = "policy_checks"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    incident_id: Mapped[int] = mapped_column(ForeignKey("incidents.id"), nullable=False, index=True)
+    incident_id: Mapped[int] = mapped_column(
+        ForeignKey("incidents.id"), nullable=False, index=True
+    )
     agent_decision_id: Mapped[int] = mapped_column(
         ForeignKey("agent_decisions.id"), nullable=False, index=True
     )
 
-    verdict: Mapped[PolicyVerdict] = mapped_column(Enum(PolicyVerdict, native_enum=False), nullable=False)
+    verdict: Mapped[PolicyVerdict] = mapped_column(
+        Enum(PolicyVerdict, native_enum=False), nullable=False
+    )
     reason: Mapped[str] = mapped_column(Text, nullable=False)
-    policy_name: Mapped[str] = mapped_column(String(255), nullable=True)  # which Rego rule fired
+    policy_name: Mapped[str] = mapped_column(
+        String(255), nullable=True
+    )  # which Rego rule fired
 
     incident: Mapped["Incident"] = relationship(back_populates="policy_checks")

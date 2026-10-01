@@ -22,14 +22,22 @@ class AgentDecision(Base, TimestampMixin):
     __tablename__ = "agent_decisions"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    incident_id: Mapped[int] = mapped_column(ForeignKey("incidents.id"), nullable=False, index=True)
+    incident_id: Mapped[int] = mapped_column(
+        ForeignKey("incidents.id"), nullable=False, index=True
+    )
 
     # Full step-by-step reasoning trace, e.g.
     # [{"step": "analyze_logs", "output": "..."}, {"step": "propose_fix", "output": "..."}]
-    reasoning_trace: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
+    reasoning_trace: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSON, nullable=False, default=list
+    )
 
-    proposed_action: Mapped[ActionType] = mapped_column(Enum(ActionType, native_enum=False), nullable=False)
-    target: Mapped[str] = mapped_column(String(255), nullable=False)  # e.g. deployment/pod name
+    proposed_action: Mapped[ActionType] = mapped_column(
+        Enum(ActionType, native_enum=False), nullable=False
+    )
+    target: Mapped[str] = mapped_column(
+        String(255), nullable=False
+    )  # e.g. deployment/pod name
     confidence: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
 
     incident: Mapped["Incident"] = relationship(back_populates="agent_decisions")

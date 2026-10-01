@@ -6,7 +6,12 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from backend.models.enums import ActionStatus, ActionType, ApprovalStatus, IncidentStatus
+from backend.models.enums import (
+    ActionStatus,
+    ActionType,
+    ApprovalStatus,
+    IncidentStatus,
+)
 
 
 class ApproveRequest(BaseModel):

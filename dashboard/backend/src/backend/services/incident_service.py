@@ -1,4 +1,3 @@
-
 """
 Service layer for incidents — pure functions over a DB session, no FastAPI
 imports here. Keeps routers thin and makes this layer easy to unit test.
@@ -58,7 +57,9 @@ def get_incident_detail(db: Session, incident_id: int) -> dict | None:
 
     detections = (
         db.execute(
-            select(Detection).where(Detection.incident_id == incident_id).order_by(Detection.created_at)
+            select(Detection)
+            .where(Detection.incident_id == incident_id)
+            .order_by(Detection.created_at)
         )
         .scalars()
         .all()
@@ -74,7 +75,9 @@ def get_incident_detail(db: Session, incident_id: int) -> dict | None:
     )
     policy_checks = (
         db.execute(
-            select(PolicyCheck).where(PolicyCheck.incident_id == incident_id).order_by(PolicyCheck.created_at)
+            select(PolicyCheck)
+            .where(PolicyCheck.incident_id == incident_id)
+            .order_by(PolicyCheck.created_at)
         )
         .scalars()
         .all()
@@ -99,7 +102,9 @@ def get_incident_detail(db: Session, incident_id: int) -> dict | None:
     )
     audit_log = (
         db.execute(
-            select(AuditLogEntry).where(AuditLogEntry.incident_id == incident_id).order_by(AuditLogEntry.created_at)
+            select(AuditLogEntry)
+            .where(AuditLogEntry.incident_id == incident_id)
+            .order_by(AuditLogEntry.created_at)
         )
         .scalars()
         .all()

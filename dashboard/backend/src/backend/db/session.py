@@ -17,9 +17,13 @@ settings = get_settings()
 # check_same_thread=False is only needed for SQLite (FastAPI may use the
 # connection from a different thread than it was created in). It's ignored
 # by other database drivers.
-connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
+connect_args = (
+    {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
+)
 
-engine = create_engine(settings.database_url, connect_args=connect_args, pool_pre_ping=True)
+engine = create_engine(
+    settings.database_url, connect_args=connect_args, pool_pre_ping=True
+)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

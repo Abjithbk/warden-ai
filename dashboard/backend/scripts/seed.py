@@ -34,10 +34,23 @@ from backend.models.remediation_action import RemediationAction
 
 fake = Faker()
 
-SERVICES = ["checkout", "payments-api", "auth-service", "inventory", "notifications", "search"]
+SERVICES = [
+    "checkout",
+    "payments-api",
+    "auth-service",
+    "inventory",
+    "notifications",
+    "search",
+]
 NAMESPACES = ["prod", "prod-eu", "staging"]
 SIGNAL_SOURCES = ["prometheus", "k8s-events", "otel-traces"]
-SIGNALS = ["OOMKilled", "HighLatency", "CrashLoopBackOff", "ErrorRateSpike", "PodPending"]
+SIGNALS = [
+    "OOMKilled",
+    "HighLatency",
+    "CrashLoopBackOff",
+    "ErrorRateSpike",
+    "PodPending",
+]
 
 # Roughly mirrors the dashboard mockup: a handful of active/awaiting
 # incidents, most of the rest resolved.
@@ -73,10 +86,14 @@ def wipe_existing(db) -> None:
     db.commit()
 
 
-def build_incident(status: IncidentStatus, severity: IncidentSeverity, index: int) -> Incident:
+def build_incident(
+    status: IncidentStatus, severity: IncidentSeverity, index: int
+) -> Incident:
     service = random.choice(SERVICES)
     signal = random.choice(SIGNALS)
-    created_at = utcnow() - timedelta(hours=random.randint(1, 96), minutes=random.randint(0, 59))
+    created_at = utcnow() - timedelta(
+        hours=random.randint(1, 96), minutes=random.randint(0, 59)
+    )
 
     incident = Incident(
         title=f"{signal.replace('_', ' ')} on {service}",
@@ -111,12 +128,20 @@ def attach_pipeline(db, incident: Incident, status: IncidentStatus, index: int) 
         incident_id=incident.id,
         source=random.choice(SIGNAL_SOURCES),
         signal=incident.title.split(" on ")[0].replace(" ", ""),
-        raw_payload={"pod": f"{incident.service}-{fake.uuid4()[:8]}", "namespace": incident.namespace},
+        raw_payload={
+            "pod": f"{incident.service}-{fake.uuid4()[:8]}",
+            "namespace": incident.namespace,
+        },
         created_at=t,
         updated_at=t,
     )
     db.add(detection)
-    add_audit("system", "incident_created", {"source": detection.source, "signal": detection.signal}, t)
+    add_audit(
+        "system",
+        "incident_created",
+        {"source": detection.source, "signal": detection.signal},
+        t,
+    )
 
     # `active` incidents stop right after detection - nothing has reasoned
     # about them yet.
@@ -128,8 +153,14 @@ def attach_pipeline(db, incident: Incident, status: IncidentStatus, index: int) 
     decision = AgentDecision(
         incident_id=incident.id,
         reasoning_trace=[
-            {"step": "analyze_signals", "output": f"Correlated {detection.signal} with recent deploy."},
-            {"step": "propose_fix", "output": f"Recommending {action_type.value} on {incident.service}."},
+            {
+                "step": "analyze_signals",
+                "output": f"Correlated {detection.signal} with recent deploy.",
+            },
+            {
+                "step": "propose_fix",
+                "output": f"Recommending {action_type.value} on {incident.service}.",
+            },
         ],
         proposed_action=action_type,
         target=f"{incident.service}-deployment",
@@ -148,7 +179,11 @@ def attach_pipeline(db, incident: Incident, status: IncidentStatus, index: int) 
 
     t += timedelta(seconds=random.randint(1, 5))
     # Rejected incidents got a `denied` policy verdict and stop there.
-    verdict = PolicyVerdict.denied if status == IncidentStatus.rejected else PolicyVerdict.approved
+    verdict = (
+        PolicyVerdict.denied
+        if status == IncidentStatus.rejected
+        else PolicyVerdict.approved
+    )
     policy_check = PolicyCheck(
         incident_id=incident.id,
         agent_decision_id=decision.id,
@@ -158,13 +193,20 @@ def attach_pipeline(db, incident: Incident, status: IncidentStatus, index: int) 
             if verdict == PolicyVerdict.denied
             else "Within guardrails: replica count and namespace checks passed."
         ),
-        policy_name="min_replica_count" if verdict == PolicyVerdict.denied else "standard_remediation",
+        policy_name="min_replica_count"
+        if verdict == PolicyVerdict.denied
+        else "standard_remediation",
         created_at=t,
         updated_at=t,
     )
     db.add(policy_check)
     db.flush()  # assigns policy_check.id - ApprovalRequest needs it as a plain FK
-    add_audit("policy-engine", f"policy_{verdict.value}", {"policy_name": policy_check.policy_name}, t)
+    add_audit(
+        "policy-engine",
+        f"policy_{verdict.value}",
+        {"policy_name": policy_check.policy_name},
+        t,
+    )
 
     if status == IncidentStatus.rejected:
         return
@@ -198,15 +240,25 @@ def attach_pipeline(db, incident: Incident, status: IncidentStatus, index: int) 
         return
 
     t += timedelta(seconds=random.randint(5, 20))
-    action_status = ActionStatus.in_progress if status == IncidentStatus.remediating else ActionStatus.succeeded
-    completed_at = t + timedelta(seconds=random.randint(10, 60)) if action_status == ActionStatus.succeeded else None
+    action_status = (
+        ActionStatus.in_progress
+        if status == IncidentStatus.remediating
+        else ActionStatus.succeeded
+    )
+    completed_at = (
+        t + timedelta(seconds=random.randint(10, 60))
+        if action_status == ActionStatus.succeeded
+        else None
+    )
     action = RemediationAction(
         incident_id=incident.id,
         approval_request_id=approval.id,
         action_type=decision.proposed_action,
         target=decision.target,
         status=action_status,
-        result={"message": "restart succeeded"} if action_status == ActionStatus.succeeded else None,
+        result={"message": "restart succeeded"}
+        if action_status == ActionStatus.succeeded
+        else None,
         started_at=t,
         completed_at=completed_at,
         created_at=t,

@@ -71,7 +71,14 @@ def export_audit_csv(
     writer.writerow(["id", "incident_id", "actor", "action", "detail", "created_at"])
     for entry in entries:
         writer.writerow(
-            [entry.id, entry.incident_id, entry.actor, entry.action, str(entry.detail), entry.created_at.isoformat()]
+            [
+                entry.id,
+                entry.incident_id,
+                entry.actor,
+                entry.action,
+                str(entry.detail),
+                entry.created_at.isoformat(),
+            ]
         )
 
     return buffer.getvalue()

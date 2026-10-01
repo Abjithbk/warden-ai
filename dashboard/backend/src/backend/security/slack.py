@@ -1,4 +1,3 @@
-
 """
 Slack request signature verification (HMAC-SHA256), per Slack's spec:
 https://api.slack.com/authentication/verifying-requests-from-slack
@@ -14,7 +13,9 @@ import hmac
 import time
 
 SLACK_SIGNATURE_VERSION = "v0"
-MAX_REQUEST_AGE_SECONDS = 60 * 5  # reject anything older than 5 minutes (replay protection)
+MAX_REQUEST_AGE_SECONDS = (
+    60 * 5
+)  # reject anything older than 5 minutes (replay protection)
 
 
 def is_valid_slack_signature(
@@ -38,11 +39,15 @@ def is_valid_slack_signature(
     if abs(time.time() - timestamp) > MAX_REQUEST_AGE_SECONDS:
         return False
 
-    base_string = f"{SLACK_SIGNATURE_VERSION}:{timestamp}:{request_body.decode('utf-8')}"
+    base_string = (
+        f"{SLACK_SIGNATURE_VERSION}:{timestamp}:{request_body.decode('utf-8')}"
+    )
     computed = (
         SLACK_SIGNATURE_VERSION
         + "="
-        + hmac.new(signing_secret.encode("utf-8"), base_string.encode("utf-8"), hashlib.sha256).hexdigest()
+        + hmac.new(
+            signing_secret.encode("utf-8"), base_string.encode("utf-8"), hashlib.sha256
+        ).hexdigest()
     )
 
     return hmac.compare_digest(computed, signature_header)

@@ -1,10 +1,10 @@
-
 """
 Shared pytest fixtures: an isolated in-memory SQLite DB per test, a
 TestClient wired to that DB via get_db override, and a pending_incident
 fixture that builds a full Incident -> ... -> ApprovalRequest(pending)
 chain so tests don't each hand-roll five model inserts.
 """
+
 import os
 
 # Must run before any "backend" import: session.py reads settings at import
@@ -63,6 +63,7 @@ def client(db_session: Session):
     # process — reset before every test so each one starts with a clean
     # rate-limit budget instead of inheriting hits from an earlier test.
     from backend.core.limiter import limiter
+
     limiter.reset()
 
     with TestClient(app) as test_client:

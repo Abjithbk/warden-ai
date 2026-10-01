@@ -1,4 +1,3 @@
-
 """
 ApprovalRequest — the human approval gate blocking Act/Observe. Can be
 actioned from the dashboard or from Slack, so `actioned_at` is what the
@@ -48,7 +47,4 @@ class ApprovalRequest(Base, TimestampMixin):
         DateTime(timezone=True), nullable=True
     )
 
-    incident: Mapped["Incident"] = relationship(
-        back_populates="approval_requests"
-    )
-
+    incident: Mapped["Incident"] = relationship(back_populates="approval_requests")

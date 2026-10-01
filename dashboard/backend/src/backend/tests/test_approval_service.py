@@ -1,4 +1,3 @@
-
 """
 Unit tests for approval_service — the idempotency guard and state
 transitions, tested directly against the DB session (no HTTP, no rate
@@ -51,7 +50,9 @@ def test_reject_incident_success(db_session, pending_incident):
 
 def test_reject_then_approve_returns_409(db_session, pending_incident):
     incident, _ = pending_incident
-    approval_service.reject_incident(db_session, incident.id, "dashboard:amaya", "too risky")
+    approval_service.reject_incident(
+        db_session, incident.id, "dashboard:amaya", "too risky"
+    )
 
     with pytest.raises(HTTPException) as exc_info:
         approval_service.approve_incident(db_session, incident.id, "dashboard:amaya")
@@ -85,4 +86,3 @@ def test_approve_incident_with_no_pending_approval_returns_404(db_session):
         approval_service.approve_incident(db_session, incident.id, "dashboard:amaya")
 
     assert exc_info.value.status_code == 404
-

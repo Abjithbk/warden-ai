@@ -20,7 +20,9 @@ class AuditLogEntry(Base, TimestampMixin):
     __tablename__ = "audit_log_entries"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    incident_id: Mapped[int] = mapped_column(ForeignKey("incidents.id"), nullable=False, index=True)
+    incident_id: Mapped[int] = mapped_column(
+        ForeignKey("incidents.id"), nullable=False, index=True
+    )
 
     # e.g. "slack:U0123ABC", "dashboard:amaya", "system"
     actor: Mapped[str] = mapped_column(String(255), nullable=False)

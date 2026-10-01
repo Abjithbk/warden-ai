@@ -23,7 +23,9 @@ from backend.models.remediation_action import RemediationAction
 def _get_incident_or_404(db: Session, incident_id: int) -> Incident:
     incident = db.get(Incident, incident_id)
     if incident is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found"
+        )
     return incident
 
 
@@ -59,7 +61,9 @@ def _assert_not_already_actioned(approval: ApprovalRequest) -> None:
         )
 
 
-def _run_stub_execution(db: Session, incident: Incident, approval: ApprovalRequest) -> RemediationAction:
+def _run_stub_execution(
+    db: Session, incident: Incident, approval: ApprovalRequest
+) -> RemediationAction:
     """
     STUB: simulates the executor module. Replace the body of this function
     with the real Kubernetes action call once the execution module lands —
@@ -92,7 +96,9 @@ def _run_stub_execution(db: Session, incident: Incident, approval: ApprovalReque
     return action
 
 
-def _add_audit(db: Session, incident_id: int, actor: str, action: str, detail: dict) -> None:
+def _add_audit(
+    db: Session, incident_id: int, actor: str, action: str, detail: dict
+) -> None:
     db.add(
         AuditLogEntry(
             incident_id=incident_id,
@@ -103,7 +109,9 @@ def _add_audit(db: Session, incident_id: int, actor: str, action: str, detail: d
     )
 
 
-def approve_incident(db: Session, incident_id: int, actioned_by: str) -> tuple[Incident, ApprovalRequest, RemediationAction]:
+def approve_incident(
+    db: Session, incident_id: int, actioned_by: str
+) -> tuple[Incident, ApprovalRequest, RemediationAction]:
     incident = _get_incident_or_404(db, incident_id)
     approval = _get_pending_approval_or_404(db, incident_id)
     _assert_not_already_actioned(approval)
@@ -146,7 +154,9 @@ def approve_incident(db: Session, incident_id: int, actioned_by: str) -> tuple[I
     return incident, approval, action
 
 
-def reject_incident(db: Session, incident_id: int, actioned_by: str, reason: str) -> tuple[Incident, ApprovalRequest]:
+def reject_incident(
+    db: Session, incident_id: int, actioned_by: str, reason: str
+) -> tuple[Incident, ApprovalRequest]:
     incident = _get_incident_or_404(db, incident_id)
     approval = _get_pending_approval_or_404(db, incident_id)
     _assert_not_already_actioned(approval)

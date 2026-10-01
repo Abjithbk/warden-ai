@@ -1,21 +1,17 @@
-from fastapi import APIRouter, Depends, Query, Request, HTTPException
-
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from backend.core.limiter import limiter
 from backend.db.session import get_db
+from backend.models.enums import IncidentSeverity, IncidentStatus
 from backend.schemas.approval import (
+    ApprovalActionResponse,
     ApproveRequest,
     RejectRequest,
-    ApprovalActionResponse,
 )
-from backend.services import approval_service
-from backend.models.enums import IncidentSeverity, IncidentStatus
 from backend.schemas.incident import IncidentListOut
-
 from backend.schemas.incident_detail import IncidentDetailOut
-from backend.services import incident_service
-
+from backend.services import approval_service, incident_service
 
 router = APIRouter(prefix="/incidents", tags=["incidents"])
 

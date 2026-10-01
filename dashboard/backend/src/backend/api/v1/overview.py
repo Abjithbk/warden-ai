@@ -12,10 +12,8 @@ router = APIRouter(prefix="/overview", tags=["overview"])
 def get_recent_actions(
     limit: int = Query(default=10, ge=1, le=50),
     db: Session = Depends(get_db),
-    ) -> list[RecentActionOut]:
-    return overview_service.get_recent_actions(db, limit=limit)    
-
-
+) -> list[RecentActionOut]:
+    return overview_service.get_recent_actions(db, limit=limit)
 
 
 @router.get("/stats", response_model=OverviewStatsOut)
@@ -27,5 +25,3 @@ def get_overview_stats(db: Session = Depends(get_db)) -> OverviewStatsOut:
         avg_remediation_seconds=overview_service.compute_avg_remediation_seconds(db),
         actions_last_24h=overview_service.count_actions_last_24h(db),
     )
-
-

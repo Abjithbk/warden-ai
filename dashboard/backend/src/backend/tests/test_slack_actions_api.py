@@ -1,4 +1,3 @@
-
 """
 API-level tests for POST /api/v1/slack/actions.
 """
@@ -36,7 +35,9 @@ def test_slack_approve_with_invalid_signature_returns_401(client, monkeypatch):
     assert response.status_code == 401
 
 
-def test_slack_approve_with_valid_signature_succeeds(client, pending_incident, monkeypatch):
+def test_slack_approve_with_valid_signature_succeeds(
+    client, pending_incident, monkeypatch
+):
     from backend.core.config import get_settings
 
     monkeypatch.setattr(get_settings(), "slack_signing_secret", SECRET)

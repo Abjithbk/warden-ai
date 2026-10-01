@@ -8,8 +8,8 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from backend.models.enums import IncidentSeverity, IncidentStatus
 from backend.models.approval_request import ApprovalRequest
+from backend.models.enums import IncidentSeverity, IncidentStatus
 from backend.models.incident import Incident
 from backend.models.remediation_action import RemediationAction
 
@@ -30,9 +30,13 @@ _ACTIVE_STATUSES = (
 
 
 def compute_sentinel_score(db: Session) -> int:
-    active_severities = db.execute(
-        select(Incident.severity).where(Incident.status.in_(_ACTIVE_STATUSES))
-    ).scalars().all()
+    active_severities = (
+        db.execute(
+            select(Incident.severity).where(Incident.status.in_(_ACTIVE_STATUSES))
+        )
+        .scalars()
+        .all()
+    )
 
     penalty = sum(_SEVERITY_PENALTY.get(sev, 0) for sev in active_severities)
     return max(0, min(100, 100 - penalty))
@@ -47,7 +51,9 @@ def count_active_incidents(db: Session) -> int:
 
 
 def count_auto_resolved_today(db: Session) -> int:
-    start_of_today = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+    start_of_today = datetime.now(UTC).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
     return db.execute(
         select(func.count())
         .select_from(Incident)
@@ -71,7 +77,9 @@ def compute_avg_remediation_seconds(db: Session) -> float | None:
     if not rows:
         return None
 
-    durations = [(resolved_at - created_at).total_seconds() for created_at, resolved_at in rows]
+    durations = [
+        (resolved_at - created_at).total_seconds() for created_at, resolved_at in rows
+    ]
     return sum(durations) / len(durations)
 
 
@@ -91,16 +99,20 @@ def get_recent_actions(db: Session, *, limit: int = 10) -> list[dict]:
     ApprovalRequest, not RemediationAction, so this joins through
     approval_request_id rather than reading it off the action directly.
     """
-    rows = (
-        db.execute(
-            select(RemediationAction, Incident.title, Incident.service, ApprovalRequest.actioned_by)
-            .join(Incident, Incident.id == RemediationAction.incident_id)
-            .join(ApprovalRequest, ApprovalRequest.id == RemediationAction.approval_request_id)
-            .order_by(RemediationAction.created_at.desc())
-            .limit(limit)
+    rows = db.execute(
+        select(
+            RemediationAction,
+            Incident.title,
+            Incident.service,
+            ApprovalRequest.actioned_by,
         )
-        .all()
-    )
+        .join(Incident, Incident.id == RemediationAction.incident_id)
+        .join(
+            ApprovalRequest, ApprovalRequest.id == RemediationAction.approval_request_id
+        )
+        .order_by(RemediationAction.created_at.desc())
+        .limit(limit)
+    ).all()
 
     return [
         {
