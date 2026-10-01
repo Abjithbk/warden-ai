@@ -5,7 +5,11 @@ TestClient wired to that DB via get_db override, and a pending_incident
 fixture that builds a full Incident -> ... -> ApprovalRequest(pending)
 chain so tests don't each hand-roll five model inserts.
 """
+import os
 
+# Must run before any "backend" import: session.py reads settings at import
+# time. Environment variables beat .env, so tests never touch a real database.
+os.environ.setdefault("DATABASE_URL", "sqlite://")
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

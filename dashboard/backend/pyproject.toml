@@ -30,6 +30,8 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "httpx2>=2.13.0",
+    "mypy>=2.3.1",
+    "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.16.5",
 ]
@@ -38,3 +40,7 @@ dev = [
 # B008: FastAPI's Depends()/Query()/etc. in default args is the required
 # pattern, not a bug - this flag is a well-known false positive for FastAPI.
 extend-ignore = ["B008"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["src/backend/tests"]
