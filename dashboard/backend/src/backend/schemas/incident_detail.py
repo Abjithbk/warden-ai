@@ -75,7 +75,7 @@ class RemediationActionOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
-class AuditLogEntryOut(BaseModel):
+class AuditLogEntryBriefOut(BaseModel):
     id: int
     actor: str
     action: str
@@ -101,4 +101,4 @@ class IncidentDetailOut(BaseModel):
     policy_checks: list[PolicyCheckOut]
     approval_requests: list[ApprovalRequestOut]
     remediation_actions: list[RemediationActionOut]
-    audit_log: list[AuditLogEntryOut]
+    audit_log: list[AuditLogEntryBriefOut]
