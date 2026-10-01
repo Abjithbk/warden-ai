@@ -34,6 +34,7 @@ def _get_pending_approval_or_404(db: Session, incident_id: int) -> ApprovalReque
         db.query(ApprovalRequest)
         .filter(ApprovalRequest.incident_id == incident_id)
         .order_by(ApprovalRequest.created_at.desc())
+        .with_for_update()
         .first()
     )
     if approval is None:
@@ -45,9 +46,8 @@ def _get_pending_approval_or_404(db: Session, incident_id: int) -> ApprovalReque
 
 
 def _assert_not_already_actioned(approval: ApprovalRequest) -> None:
-    # This is the race guard: Slack and dashboard both hit this. Whichever
-    # transaction commits first wins; the second sees actioned_at set and
-    # gets 409, not a silent double-action.
+        # Race guard. The row is locked (FOR UPDATE) when it is read, so a second
+    # request waits for the first to commit, then sees actioned_at set -> 409.
     if approval.actioned_at is not None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
