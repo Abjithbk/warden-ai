@@ -18,7 +18,7 @@ wheels/
 
 # Secrets / local env
 .env
-
 # Local dev database
 *.db
 *.db-journal
+.env.docker
