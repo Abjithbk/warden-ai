@@ -1,0 +1,24 @@
+{
+  "version": "4",
+  "status": "firing",
+  "alerts": [
+    {
+      "status": "firing",
+      "labels": {
+        "alertname": "WardenErrorBudgetBurnFast",
+        "service": "checkoutservice",
+        "severity": "critical",
+        "slo": "availability",
+        "burn": "fast"
+      },
+      "annotations": {
+        "summary": "Fast error-budget burn on checkoutservice",
+        "description": "checkoutservice error ratio is 100% (SLO 99%, threshold 14.4x burn)."
+      },
+      "startsAt": "2026-09-19T05:23:43Z",
+      "endsAt": "0001-01-01T00:00:00Z",
+      "generatorURL": "http://prometheus/graph",
+      "fingerprint": "abc123def456"
+    }
+  ]
+}
