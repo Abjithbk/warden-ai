@@ -1,0 +1,119 @@
+[1mdiff --git a/detector/receiver/main.py b/detector/receiver/main.py[m
+[1mindex 813ae64..8fe9945 100644[m
+[1m--- a/detector/receiver/main.py[m
+[1m+++ b/detector/receiver/main.py[m
+[36m@@ -86,10 +86,12 @@[m [mdef alertmanager_webhook(payload: AMWebhook) -> dict:[m
+     for alert in payload.alerts:[m
+         incident = normalize(alert)[m
+         with incidents_lock:[m
+[31m-            incidents[incident.fingerprint] = incident[m
+[31m-            incidents.move_to_end(incident.fingerprint)[m
+[31m-            while len(incidents) > MAX_INCIDENTS:[m
+[31m-                incidents.popitem(last=False)[m
+[32m+[m[32m            existing = incidents.get(incident.fingerprint)[m
+[32m+[m[32m            if existing is None or incident.started_at >= existing.started_at:[m
+[32m+[m[32m                incidents[incident.fingerprint] = incident[m
+[32m+[m[32m                incidents.move_to_end(incident.fingerprint)[m
+[32m+[m[32m                while len(incidents) > MAX_INCIDENTS:[m
+[32m+[m[32m                    incidents.popitem(last=False)[m
+         log.info(json.dumps({"event": "incident", **incident.model_dump()}))[m
+     return {"received": len(payload.alerts)}[m
+ [m
+[1mdiff --git a/detector/receiver/tests/test_receiver.py b/detector/receiver/tests/test_receiver.py[m
+[1mindex 5681faf..10b8889 100644[m
+[1m--- a/detector/receiver/tests/test_receiver.py[m
+[1m+++ b/detector/receiver/tests/test_receiver.py[m
+[36m@@ -121,3 +121,93 @@[m [mdef test_store_is_capped_and_evicts_oldest(client, monkeypatch):[m
+ [m
+     fingerprints = [i["fingerprint"] for i in client.get("/incidents").json()][m
+     assert fingerprints == ["three", "two"][m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef test_stale_firing_after_resolved_ignored(client):[m
+[32m+[m[32m    fp = "test-fingerprint-stale-order"[m
+[32m+[m[32m    resolved_payload = {[m
+[32m+[m[32m        "alerts": [{[m
+[32m+[m[32m            "status": "resolved",[m
+[32m+[m[32m            "labels": {"alertname": "Test", "service": "test-svc"},[m
+[32m+[m[32m            "annotations": {},[m
+[32m+[m[32m            "startsAt": "2026-09-27T10:00:00Z",[m
+[32m+[m[32m            "endsAt": "2026-09-27T10:05:00Z",[m
+[32m+[m[32m            "fingerprint": fp,[m
+[32m+[m[32m        }][m
+[32m+[m[32m    }[m
+[32m+[m[32m    stale_firing_payload = {[m
+[32m+[m[32m        "alerts": [{[m
+[32m+[m[32m            "status": "firing",[m
+[32m+[m[32m            "labels": {"alertname": "Test", "service": "test-svc"},[m
+[32m+[m[32m            "annotations": {},[m
+[32m+[m[32m            "startsAt": "2026-09-27T09:00:00Z",[m
+[32m+[m[32m            "fingerprint": fp,[m
+[32m+[m[32m        }][m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    client.post("/webhook/alertmanager", json=resolved_payload)[m
+[32m+[m[32m    client.post("/webhook/alertmanager", json=stale_firing_payload)[m
+[32m+[m
+[32m+[m[32m    incidents = client.get("/incidents").json()[m
+[32m+[m[32m    incident = next(i for i in incidents if i["fingerprint"] == fp)[m
+[32m+[m[32m    assert incident["status"] == "resolved"[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef test_stale_firing_after_resolved_ignored(client):[m
+[32m+[m[32m    fp = "test-fingerprint-stale-order"[m
+[32m+[m[32m    resolved_payload = {[m
+[32m+[m[32m        "alerts": [{[m
+[32m+[m[32m            "status": "resolved",[m
+[32m+[m[32m            "labels": {"alertname": "Test", "service": "test-svc"},[m
+[32m+[m[32m            "annotations": {},[m
+[32m+[m[32m            "startsAt": "2026-09-27T10:00:00Z",[m
+[32m+[m[32m            "endsAt": "2026-09-27T10:05:00Z",[m
+[32m+[m[32m            "fingerprint": fp,[m
+[32m+[m[32m        }][m
+[32m+[m[32m    }[m
+[32m+[m[32m    stale_firing_payload = {[m
+[32m+[m[32m        "alerts": [{[m
+[32m+[m[32m            "status": "firing",[m
+[32m+[m[32m            "labels": {"alertname": "Test", "service": "test-svc"},[m
+[32m+[m[32m            "annotations": {},[m
+[32m+[m[32m            "startsAt": "2026-09-27T09:00:00Z",[m
+[32m+[m[32m            "fingerprint": fp,[m
+[32m+[m[32m        }][m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    client.post("/webhook/alertmanager", json=resolved_payload)[m
+[32m+[m[32m    client.post("/webhook/alertmanager", json=stale_firing_payload)[m
+[32m+[m
+[32m+[m[32m    incidents = client.get("/incidents").json()[m
+[32m+[m[32m    incident = next(i for i in incidents if i["fingerprint"] == fp)[m
+[32m+[m[32m    assert incident["status"] == "resolved"[m
+[32m+[m
+[32m+[m
+[32m+[m[32mdef test_stale_firing_after_resolved_ignored(client):[m
+[32m+[m[32m    fp = "test-fingerprint-stale-order"[m
+[32m+[m[32m    resolved_payload = {[m
+[32m+[m[32m        "alerts": [{[m
+[32m+[m[32m            "status": "resolved",[m
+[32m+[m[32m            "labels": {"alertname": "Test", "service": "test-svc"},[m
+[32m+[m[32m            "annotations": {},[m
+[32m+[m[32m            "startsAt": "2026-09-27T10:00:00Z",[m
+[32m+[m[32m            "endsAt": "2026-09-27T10:05:00Z",[m
+[32m+[m[32m            "fingerprint": fp,[m
+[32m+[m[32m        }][m
+[32m+[m[32m    }[m
+[32m+[m[32m    stale_firing_payload = {[m
+[32m+[m[32m        "alerts": [{[m
+[32m+[m[32m            "status": "firing",[m
+[32m+[m[32m            "labels": {"alertname": "Test", "service": "test-svc"},[m
+[32m+[m[32m            "annotations": {},[m
+[32m+[m[32m            "startsAt": "2026-09-27T09:00:00Z",[m
+[32m+[m[32m            "fingerprint": fp,[m
+[32m+[m[32m        }][m
+[32m+[m[32m    }[m
+[32m+[m
+[32m+[m[32m    client.post("/webhook/alertmanager", json=resolved_payload)[m
+[32m+[m[32m    client.post("/webhook/alertmanager", json=stale_firing_payload)[m
+[32m+[m
+[32m+[m[32m    incidents = client.get("/incidents").json()[m
+[32m+[m[32m    incident = next(i for i in incidents if i["fingerprint"] == fp)[m
+[32m+[m[32m    assert incident["status"] == "resolved"[m
