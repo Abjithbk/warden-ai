@@ -24,6 +24,25 @@ deny contains msg if {
 	msg := sprintf("desired_replicas %d below min_replicas %d for '%s'", [input.desired_replicas, target_min, input.target])
 }
 
+# Deny any action type we don't explicitly recognize
+deny contains msg if {
+	not input.action in {"restart", "scale", "rollback"}
+	msg := sprintf("unsupported action '%v'", [input.action])
+}
+
+# Deny scale requests missing required replica fields
+deny contains msg if {
+	input.action == "scale"
+	not input.current_replicas
+	msg := "scale action missing required field 'current_replicas'"
+}
+
+deny contains msg if {
+	input.action == "scale"
+	not input.desired_replicas
+	msg := "scale action missing required field 'desired_replicas'"
+}
+
 # --- Allow logic --------------------------------------------------
 
 allow if {

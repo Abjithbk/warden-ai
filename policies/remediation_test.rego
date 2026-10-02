@@ -56,3 +56,31 @@ test_rollback_is_always_high_risk if {
 
 	result.risk == "high"
 }
+test_deny_unsupported_action if {
+	not allow with input as {
+		"action": "delete_everything",
+		"namespace": "warden-demo",
+		"target": "checkoutservice",
+	}
+		with data.protected_namespaces as ["kube-system", "monitoring"]
+}
+
+test_deny_scale_missing_desired_replicas if {
+	not allow with input as {
+		"action": "scale",
+		"namespace": "warden-demo",
+		"target": "checkoutservice",
+		"current_replicas": 2,
+	}
+		with data.protected_namespaces as ["kube-system", "monitoring"]
+}
+
+test_deny_scale_missing_current_replicas if {
+	not allow with input as {
+		"action": "scale",
+		"namespace": "warden-demo",
+		"target": "checkoutservice",
+		"desired_replicas": 3,
+	}
+		with data.protected_namespaces as ["kube-system", "monitoring"]
+}
