@@ -1,0 +1,8 @@
+{
+  "protected_namespaces": ["kube-system", "monitoring", "kube-node-lease", "kube-public"],
+  "min_replicas": {
+    "checkoutservice": 2,
+    "frontend": 2
+  },
+  "default_min_replicas": 1
+}
