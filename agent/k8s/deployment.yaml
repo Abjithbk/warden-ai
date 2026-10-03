@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: warden-agent
+  namespace: warden-system
+  labels:
+    app: warden-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: warden-agent
+  template:
+    metadata:
+      labels:
+        app: warden-agent
+    spec:
+      serviceAccountName: warden-agent
+      containers:
+        - name: agent
+          image: warden-agent:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8001
+          env:
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: agent-secrets
+                  key: GROQ_API_KEY
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8001
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
