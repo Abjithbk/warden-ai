@@ -5,3 +5,6 @@ context.md
 .pytest_cache/
 *.dist-info/
 agent/.env
+receiver/.env
+**/receiver/.env
+agent/data/
