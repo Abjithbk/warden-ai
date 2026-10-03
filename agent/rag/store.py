@@ -1,9 +1,9 @@
 import chromadb
-from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
+from chromadb.utils.embedding_functions import ONNXMiniLM_L6_V2
 from pathlib import Path
 
 CHROMA_PATH = Path(__file__).parent.parent / "data" / "chroma"
-_EF = SentenceTransformerEmbeddingFunction(model_name="all-MiniLM-L6-v2")
+_EF = ONNXMiniLM_L6_V2()
 
 
 def get_client() -> chromadb.PersistentClient:
