@@ -8,3 +8,18 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Secrets / local env
+.env
+
+# Local dev database
+*.db
+*.db-journal
+
+# Secrets / local env
+.env
+# Local dev database
+*.db
+*.db-journal
+.env.docker
+.coverage

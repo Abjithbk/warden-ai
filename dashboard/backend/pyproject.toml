@@ -8,7 +8,15 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.19.2",
+    "faker>=40.38.0",
     "fastapi>=0.141.1",
+    "psycopg[binary]>=3.3.5",
+    "pydantic-settings>=2.15.0",
+    "python-dotenv>=1.2.2",
+    "slowapi>=0.1.10",
+    "sqlalchemy>=2.0.52",
+    "structlog>=26.1.0",
     "uvicorn[standard]>=0.53.0",
 ]
 
@@ -21,5 +29,18 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "httpx2>=2.13.0",
+    "mypy>=2.3.1",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
     "ruff>=0.16.8",
 ]
+
+[tool.ruff.lint]
+# B008: FastAPI's Depends()/Query()/etc. in default args is the required
+# pattern, not a bug - this flag is a well-known false positive for FastAPI.
+extend-ignore = ["B008"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["src/backend/tests"]
