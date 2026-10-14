@@ -6,18 +6,25 @@ dashboard backend (M8) and the agent consumes them from M4 onward.
 """
 import json
 import logging
+import os
 from collections import OrderedDict
 from datetime import datetime, timezone
+from threading import RLock, Thread
 from typing import Literal
-from threading import RLock
+
+import httpx
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
+
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 log = logging.getLogger("warden.detector")
 
 MAX_INCIDENTS = 200
-ZERO_TIME = "0001-01-01T00:00:00Z"  # Alertmanager's value for "not ended"
+ZERO_TIME = "0001-01-01T00:00:00Z"
+AGENT_URL = os.environ.get("AGENT_URL", "http://localhost:8001")
 
 
 class AMAlert(BaseModel):
@@ -53,7 +60,8 @@ class Incident(BaseModel):
 
 app = FastAPI(title="Warden Detector Receiver")
 incidents: "OrderedDict[str, Incident]" = OrderedDict()
-incidents_lock = RLock()  
+incidents_lock = RLock()
+
 
 def normalize(alert: AMAlert) -> Incident:
     labels, ann = alert.labels, alert.annotations
@@ -76,6 +84,24 @@ def normalize(alert: AMAlert) -> Incident:
     )
 
 
+def call_agent(incident: Incident) -> None:
+    """POST incident to agent /diagnose in a background thread."""
+    payload = {
+        "name": incident.alertname,
+        "namespace": "warden-demo",
+        "severity": incident.severity,
+        "description": incident.description,
+        "pod": "",
+        "fingerprint": incident.fingerprint,
+    }
+    try:
+        resp = httpx.post(f"{AGENT_URL}/diagnose", json=payload, timeout=60)
+        resp.raise_for_status()
+        log.info(json.dumps({"event": "agent_diagnosis", "fingerprint": incident.fingerprint, "result": resp.json()}))
+    except Exception as exc:
+        log.error(json.dumps({"event": "agent_error", "fingerprint": incident.fingerprint, "error": str(exc)}))
+
+
 @app.get("/healthz")
 def healthz() -> dict:
     return {"status": "ok"}
@@ -93,6 +119,8 @@ def alertmanager_webhook(payload: AMWebhook) -> dict:
                 while len(incidents) > MAX_INCIDENTS:
                     incidents.popitem(last=False)
         log.info(json.dumps({"event": "incident", **incident.model_dump()}))
+        if incident.status == "firing":
+            Thread(target=call_agent, args=(incident,), daemon=True).start()
     return {"received": len(payload.alerts)}
 
 

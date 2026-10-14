@@ -2,3 +2,9 @@
 CONTEXT.md
 context.md
 .venv/
+.pytest_cache/
+*.dist-info/
+agent/.env
+receiver/.env
+**/receiver/.env
+agent/data/
