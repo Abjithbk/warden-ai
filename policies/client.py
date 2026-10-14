@@ -1,3 +1,4 @@
+import os
 import requests
 
 
@@ -6,7 +7,8 @@ class PolicyUnavailableError(Exception):
     pass
 
 
-OPA_URL = "http://localhost:8181/v1/data/warden/remediation/decision"
+DEFAULT_OPA_URL = "http://localhost:8181/v1/data/warden/remediation/decision"
+OPA_URL = os.environ.get("OPA_URL", DEFAULT_OPA_URL)
 
 
 def check_policy(action: str, namespace: str, target: str, **extra) -> dict:
@@ -19,6 +21,7 @@ def check_policy(action: str, namespace: str, target: str, **extra) -> dict:
         PolicyUnavailableError: if OPA responds but the response has no 'result' key
             (e.g. the policy path doesn't exist or evaluation produced no value)
     """
+    url = os.environ.get("OPA_URL", OPA_URL)
     payload = {
         "input": {
             "action": action,
@@ -27,7 +30,7 @@ def check_policy(action: str, namespace: str, target: str, **extra) -> dict:
             **extra,
         }
     }
-    resp = requests.post(OPA_URL, json=payload, timeout=5)
+    resp = requests.post(url, json=payload, timeout=5)
     resp.raise_for_status()
 
     body = resp.json()

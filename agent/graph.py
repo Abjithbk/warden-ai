@@ -3,8 +3,17 @@
 Graph: START -> retrieval -> gather_context -> diagnose -> END
 """
 import os
+import sys
 import logging
+from pathlib import Path
 from typing import TypedDict, Literal
+
+# Ensure repo root is accessible for policies.client
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from policies.client import check_policy, PolicyUnavailableError
 
 from langchain_groq import ChatGroq
 from langchain_core.messages import SystemMessage, HumanMessage
@@ -22,17 +31,13 @@ log = logging.getLogger("warden.agent")
 # ---------------------------------------------------------------------------
 
 class DiagnosisResult(BaseModel):
-    action: Literal[
-        "rollout_restart",
-        "scale_deployment",
-        "restart_pod",
-        "no_action",
-        "escalate",
-    ] = Field(description="Remediation action to take")
+    action: str = Field(description="Remediation action to take (e.g. rollout_restart, scale_deployment, restart_pod, rollback_deployment, no_action, escalate)")
     target: str = Field(description="Kubernetes resource name to act on")
     namespace: str = Field(description="Namespace of the target resource")
     reason: str = Field(description="Short explanation of the diagnosis")
     confidence: float = Field(description="Confidence score between 0.0 and 1.0")
+    current_replicas: int | None = Field(default=None, description="Current replicas if scaling")
+    desired_replicas: int | None = Field(default=None, description="Desired replicas if scaling")
 
 
 # ---------------------------------------------------------------------------
@@ -177,6 +182,80 @@ A single OOMKilled pod will OOM again immediately after restart — rollout_rest
 
 
 # ---------------------------------------------------------------------------
+# Policy check
+# ---------------------------------------------------------------------------
+
+ACTION_MAPPING = {
+    "rollout_restart": "restart",
+    "restart_pod": "restart",
+    "restart": "restart",
+    "scale_deployment": "scale",
+    "scale": "scale",
+    "rollback_deployment": "rollback",
+    "rollback": "rollback",
+}
+
+
+def policy_check(state: AgentState) -> AgentState:
+    """Evaluates the proposed remediation action against OPA guardrails."""
+    diag = state.get("diagnosis", {})
+    if not diag:
+        return state
+
+    raw_action = diag.get("action", "")
+    opa_action = ACTION_MAPPING.get(raw_action, raw_action)
+    namespace = diag.get("namespace", "warden-demo")
+    target = diag.get("target", "")
+
+    extra = {}
+    if diag.get("current_replicas") is not None:
+        extra["current_replicas"] = diag["current_replicas"]
+    if diag.get("desired_replicas") is not None:
+        extra["desired_replicas"] = diag["desired_replicas"]
+
+    # If scaling but current_replicas not provided, attempt lookup from k8s
+    if opa_action == "scale" and "current_replicas" not in extra:
+        try:
+            apps_v1 = client.AppsV1Api()
+            scale_obj = apps_v1.read_namespaced_deployment_scale(name=target, namespace=namespace)
+            extra["current_replicas"] = scale_obj.status.replicas or scale_obj.spec.replicas or 1
+            diag["current_replicas"] = extra["current_replicas"]
+        except Exception as exc:
+            log.warning("Could not fetch current_replicas from k8s for %s/%s: %s", namespace, target, exc)
+
+    try:
+        decision = check_policy(action=opa_action, namespace=namespace, target=target, **extra)
+        allowed = decision.get("allow", False)
+        risk = decision.get("risk", "high")
+        reasons = decision.get("reasons", [])
+
+        if not allowed:
+            policy_status = "denied"
+            log.warning("OPA policy DENIED action '%s': %s", opa_action, reasons)
+        elif risk == "high":
+            policy_status = "needs_approval"
+            log.info("OPA policy ALLOWED (risk=high, needs approval) for action '%s'", opa_action)
+        else:
+            policy_status = "auto_executable"
+            log.info("OPA policy ALLOWED (risk=low, auto-executable) for action '%s'", opa_action)
+
+    except Exception as exc:
+        # Fail closed: treat as needs approval, do not auto-execute
+        log.error("OPA policy check failed (failing closed to needs_approval): %s", exc)
+        allowed = False
+        risk = "high"
+        policy_status = "needs_approval"
+        reasons = [f"OPA policy check unavailable (fail-closed): {type(exc).__name__}: {exc}"]
+
+    diag["policy_status"] = policy_status
+    diag["allowed"] = allowed
+    diag["risk"] = risk
+    diag["policy_reasons"] = reasons
+    state["diagnosis"] = diag
+    return state
+
+
+# ---------------------------------------------------------------------------
 # Graph
 # ---------------------------------------------------------------------------
 
@@ -185,8 +264,10 @@ def build_graph():
     g.add_node("retrieval", retrieval_node)
     g.add_node("gather_context", gather_context)
     g.add_node("diagnose", diagnose)
+    g.add_node("policy_check", policy_check)
     g.add_edge(START, "retrieval")
     g.add_edge("retrieval", "gather_context")
     g.add_edge("gather_context", "diagnose")
-    g.add_edge("diagnose", END)
+    g.add_edge("diagnose", "policy_check")
+    g.add_edge("policy_check", END)
     return g.compile()
