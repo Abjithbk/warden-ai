@@ -40,6 +40,12 @@ class Settings(BaseSettings):
     # --- Rate limiting ---
     rate_limit_default: str = "60/minute"
 
+    # --- Dashboard authentication ---
+    # Pre-shared key required in the X-API-Key header for dashboard-facing
+    # endpoints (e.g. POST /slack/test, POST /slack/notify).
+    # Leave empty to disable those endpoints (dependency returns 503).
+    dashboard_api_key: str = ""
+
 
 @lru_cache
 def get_settings() -> Settings:
