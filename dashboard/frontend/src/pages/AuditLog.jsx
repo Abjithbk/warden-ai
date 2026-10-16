@@ -8,7 +8,8 @@ function mapActionToResult(action) {
   if (action === 'action_succeeded') return 'Success';
   if (action === 'action_failed') return 'Failed';
   if (action === 'action_started') return 'In progress';
-  if (action === 'approval_granted') return 'Success';
+  if (action === 'approval_approved') return 'Success';
+  if (action === 'slack_notified') return 'Success';
   if (action === 'approval_rejected') return 'Failed';
   if (action === 'incident_created') return 'Pending';
   return 'Pending';

@@ -46,5 +46,7 @@ class ApprovalRequest(Base, TimestampMixin):
     actioned_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    slack_channel: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    slack_message_ts: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     incident: Mapped["Incident"] = relationship(back_populates="approval_requests")

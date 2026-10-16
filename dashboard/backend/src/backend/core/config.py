@@ -32,7 +32,11 @@ class Settings(BaseSettings):
 
     # --- Slack ---
     slack_signing_secret: str = ""
-
+    slack_bot_token: str = ""  # xoxb-...  (scope: chat:write)
+    slack_channel_id: str = ""  # e.g. C0123ABCDEF (invite the bot to it first)
+    slack_api_base_url: str = "https://slack.com/api"
+    # Used for the "Open in Warden" link inside Slack messages.
+    dashboard_base_url: str = "http://localhost:5173"
     # --- Rate limiting ---
     rate_limit_default: str = "60/minute"
 

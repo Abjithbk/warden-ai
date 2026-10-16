@@ -29,7 +29,11 @@ export const getIncidents = (params = {}) => api.get('/incidents', { params })
 export const getIncidentById = (id) => api.get(`/incidents/${id}`)
 export const approveIncident = (id, payload) => api.post(`/incidents/${id}/approve`, payload)
 export const rejectIncident = (id, payload) => api.post(`/incidents/${id}/reject`, payload)
-
+//slack endpoints
+export const getSlackStatus = () => api.get('/slack/status')
+export const sendSlackTest = () => api.post('/slack/test')
+export const notifySlack = (incidentId, force = false) =>
+    api.post(`/slack/notify/${incidentId}`, null, { params: { force } })
 //audit log endpoints
 export const getAuditLogs = (params = {}) => api.get('/audit', { params })
 

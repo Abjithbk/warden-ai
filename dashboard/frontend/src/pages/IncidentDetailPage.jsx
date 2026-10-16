@@ -5,7 +5,7 @@ import IncidentStatusBadge from '../components/incidents/IncidentStatusBadge';
 import IncidentMetadataCard from '../components/incidents/IncidentMetadataCard';
 import IncidentRecentLogsCard from '../components/incidents/IncidentRecentLogsCard';
 import IncidentWorkflowSteps from '../components/incidents/IncidentWorkflowSteps';
-import { getIncidentById, approveIncident, rejectIncident } from '../api/client';
+import { getIncidentById, approveIncident, rejectIncident, notifySlack } from '../api/client';
 
 function calculateDuration(startStr, endStr) {
   if (!startStr) return '0m 00s';
@@ -31,6 +31,7 @@ const IncidentDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [notifyLoading, setNotifyLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Normalize id: handles both 'inc-097' and '97'
@@ -43,18 +44,22 @@ const IncidentDetailPage = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const fetchIncident = async () => {
+  // silent=true refreshes in the background (no spinner, keeps the old data
+  // on a failed poll) so Slack approvals show up without a page reload.
+  const fetchIncident = async (silent = false) => {
     if (!numericId) return;
     try {
-      setLoading(true);
-      setError(null);
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
       const data = await getIncidentById(numericId);
       setIncident(data);
     } catch (err) {
       console.error('Failed to load incident detail:', err);
-      setError(err.message);
+      if (!silent) setError(err.message);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -62,15 +67,25 @@ const IncidentDetailPage = () => {
     fetchIncident();
   }, [numericId]);
 
+  // While waiting on a human, poll every 5s: someone may click Approve/Reject in Slack.
+  const awaitingApproval = incident?.status === 'awaiting_approval';
+  useEffect(() => {
+    if (!awaitingApproval) return undefined;
+    const poll = setInterval(() => fetchIncident(true), 5000);
+    return () => clearInterval(poll);
+  }, [awaitingApproval, numericId]);
+
   const handleApprove = async () => {
     if (!numericId || actionLoading) return;
     try {
       setActionLoading(true);
       await approveIncident(numericId, { actioned_by: 'dashboard:operator' });
       // Refresh detail data after approval
-      await fetchIncident();
+      await fetchIncident(true);
     } catch (err) {
       alert(`Approval failed: ${err.message}`);
+      // 409 = already decided (e.g. in Slack): show the real state
+      await fetchIncident(true);
     } finally {
       setActionLoading(false);
     }
@@ -88,11 +103,27 @@ const IncidentDetailPage = () => {
         reason: reason,
       });
       // Refresh detail data after rejection
-      await fetchIncident();
+      await fetchIncident(true);
     } catch (err) {
       alert(`Rejection failed: ${err.message}`);
+      await fetchIncident(true);
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleNotifySlack = async () => {
+    if (!numericId || notifyLoading) return;
+    try {
+      setNotifyLoading(true);
+      // force=true when already sent: the button then means "Resend"
+      const alreadySent = incident?.approval_requests?.at(-1)?.slack_message_ts;
+      await notifySlack(numericId, Boolean(alreadySent));
+      await fetchIncident(true);
+    } catch (err) {
+      alert(`Slack notification failed: ${err.message}`);
+    } finally {
+      setNotifyLoading(false);
     }
   };
 
@@ -178,7 +209,9 @@ const IncidentDetailPage = () => {
             incident={incident}
             onApprove={handleApprove}
             onReject={handleReject}
+            onNotifySlack={handleNotifySlack}
             actionLoading={actionLoading}
+            notifyLoading={notifyLoading}
           />
         </div>
       </div>

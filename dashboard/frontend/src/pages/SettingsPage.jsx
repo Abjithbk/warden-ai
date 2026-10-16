@@ -1,13 +1,8 @@
 import { useState } from 'react';
 import PageHeader from '../components/common/PageHeader';
+import SlackIntegrationCard from '../components/settings/SlackIntegrationCard';
 
 const initialIntegrations = [
-  {
-    id: 'slack',
-    name: 'Slack notifications',
-    detail: '#warden-alerts',
-    enabled: true,
-  },
   {
     id: 'claude',
     name: 'Claude API',
@@ -49,6 +44,7 @@ const SettingsPage = () => {
 
       {/* Settings Grid */}
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2 items-start">
+        <SlackIntegrationCard />
         {/* Card 1: INTEGRATIONS */}
         <div className="rounded-xl border border-slate-800/80 bg-slate-900/60 p-5 shadow-lg backdrop-blur-sm">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4">
@@ -74,9 +70,8 @@ const SettingsPage = () => {
                   role="switch"
                   aria-checked={item.enabled}
                   onClick={() => toggleIntegration(item.id)}
-                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${
-                    item.enabled ? 'bg-emerald-500' : 'bg-slate-700'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 ${item.enabled ? 'bg-emerald-500' : 'bg-slate-700'
+                    }`}
                 >
                   <span className="sr-only">Toggle {item.name}</span>
                   <span
