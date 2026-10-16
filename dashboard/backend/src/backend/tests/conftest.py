@@ -19,6 +19,7 @@ from sqlalchemy.pool import StaticPool
 from backend.db.base import Base
 from backend.db.session import get_db
 from backend.main import app
+from backend.security.dashboard import require_dashboard_auth
 from backend.models.agent_decision import AgentDecision
 from backend.models.approval_request import ApprovalRequest
 from backend.models.detection import Detection
@@ -58,6 +59,8 @@ def client(db_session: Session):
             pass
 
     app.dependency_overrides[get_db] = override_get_db
+    # Bypass dashboard auth in all tests — authentication is tested separately.
+    app.dependency_overrides[require_dashboard_auth] = lambda: None
 
     # slowapi's default storage is in-memory and shared across the whole
     # process — reset before every test so each one starts with a clean
