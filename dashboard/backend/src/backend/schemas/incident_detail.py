@@ -57,6 +57,8 @@ class ApprovalRequestOut(BaseModel):
     actioned_by: str | None
     actioned_at: datetime | None
     rejection_reason: str | None
+    slack_channel: str | None = None
+    slack_message_ts: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

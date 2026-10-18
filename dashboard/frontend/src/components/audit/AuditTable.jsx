@@ -1,5 +1,26 @@
 import StatusBadge from '../common/StatusBadge';
 
+// "slack:amaya" -> [Slack] amaya, "dashboard:operator" -> [Dashboard] operator
+const ActorCell = ({ actor }) => {
+  const [source, ...rest] = (actor || '').split(':');
+  const name = rest.join(':');
+  if (!name) return <span className="text-sm text-slate-300">{actor || '-'}</span>;
+  const styles =
+    source === 'slack'
+      ? 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30'
+      : 'bg-slate-500/15 text-slate-300 border-slate-500/30';
+  return (
+    <span className="inline-flex items-center gap-2 text-sm text-slate-300">
+      <span
+        className={`rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${styles}`}
+      >
+        {source}
+      </span>
+      {name}
+    </span>
+  );
+};
+
 const AuditTable = ({ data }) => {
   if (data.length === 0) {
     return (
@@ -26,6 +47,9 @@ const AuditTable = ({ data }) => {
                 Service
               </th>
               <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
+                Actor
+              </th>
+              <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Action
               </th>
               <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">
@@ -47,6 +71,9 @@ const AuditTable = ({ data }) => {
                 </td>
                 <td className="px-5 py-3.5 text-sm text-slate-300">
                   {row.service}
+                </td>
+                <td className="px-5 py-3.5">
+                  <ActorCell actor={row.actor} />
                 </td>
                 <td className="px-5 py-3.5 text-sm text-slate-300">
                   {row.action}
@@ -83,6 +110,10 @@ const AuditTable = ({ data }) => {
               <div className="flex justify-between">
                 <span className="text-slate-500">Service</span>
                 <span className="text-slate-300">{row.service}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Actor</span>
+                <ActorCell actor={row.actor} />
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Action</span>

@@ -1,97 +1,85 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import PageHeader from '../components/common/PageHeader';
 import FilterTabs from '../components/common/FilterTabs';
 import IncidentCard from '../components/incidents/IncidentCard';
+import { getIncidents } from '../api/client';
+const formatTimeAgo = (dateString) => {
+  if (!dateString) return 'recently';
+  const seconds = Math.floor((new Date() - new Date(dateString)) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.floor(hours / 24)}d ago`;
+}
 
-// Mock data matching the design 
-const mockIncidents = [
-  {
-    id: 'inc-001',
-    service: 'auth-service',
-    title: 'OOMKilled / restart loop',
-    namespace: 'production-auth / auth-service',
-    detail: 'memory.usage > 95% limit',
-    status: 'Awaiting Approval',
-    time: 'just now',
-    category: 'awaiting',
-  },
-  {
-    id: 'inc-002',
-    service: 'inventory-svc',
-    title: 'elevated 5xx rate',
-    namespace: 'prod / inventory-svc',
-    detail: 'error_rate > 8%',
-    status: 'Remediating',
-    time: '21m ago',
-    category: 'warning',
-  },
-  {
-    id: 'inc-003',
-    service: 'payments-worker',
-    title: 'CrashLoopBackOff',
-    namespace: 'prod / payments-worker-7f9d',
-    detail: 'pod restart count > 3',
-    status: 'Resolved',
-    time: '14m ago',
-    category: 'resolved',
-  },
-  {
-    id: 'inc-004',
-    service: 'checkout-api',
-    title: 'memory pressure',
-    namespace: 'prod / checkout-api',
-    detail: 'node OOM risk detected',
-    status: 'Resolved',
-    time: '2h ago',
-    category: 'resolved',
-  },
-  {
-    id: 'inc-005',
-    service: 'recommendation-svc',
-    title: 'feature flag rollback',
-    namespace: 'prod / recommendation-svc',
-    detail: 'anomalous error signature',
-    status: 'Resolved',
-    time: '1d ago',
-    category: 'resolved',
-  },
-  {
-    id: 'inc-006',
-    service: 'auth-service',
-    title: 'pod restart loop',
-    namespace: 'prod / auth-service',
-    detail: 'liveness probe failing',
-    status: 'Resolved',
-    time: '6h ago',
-    category: 'resolved',
-  },
-];
-
+function mapStatusToCategory(status) {
+  if (status === 'awaiting_approval') return 'awaiting';
+  if (status === 'active' || status === 'remediating') return 'warning';
+  if (status === 'resolved') return 'resolved';
+  return 'all';
+}
+function mapStatusToDisplay(status) {
+  if (status === 'awaiting_approval') return 'Awaiting Approval';
+  if (status === 'remediating') return 'Remediating';
+  if (status === 'active') return 'Active';
+  if (status === 'resolved') return 'Resolved';
+  if (status === 'rejected') return 'Rejected';
+  return status;
+}
 const IncidentsPage = () => {
+  const [incidents, setIncidents] = useState([]);
   const [activeTab, setActiveTab] = useState('all');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  useEffect(() => {
+    async function fetchIncidentsData() {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getIncidents({ limit: 50 });
 
-  // Compute tab counts from data
+        const mapped = (data.items || []).map((inc) => ({
+          id: `inc-${String(inc.id).padStart(3, '0')}`,
+          rawId: inc.id,
+          service: inc.service,
+          title: inc.title,
+          namespace: `${inc.namespace || 'default'} / ${inc.service}`,
+          detail: `Severity: ${inc.severity}`,
+          status: mapStatusToDisplay(inc.status),
+          time: formatTimeAgo(inc.created_at),
+          category: mapStatusToCategory(inc.status),
+        }));
+        setIncidents(mapped);
+      } catch (err) {
+        console.error('Failed to load incidents:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchIncidentsData();
+  }, []);
+  // Compute tab counts dynamically from live database data
   const counts = useMemo(() => {
-    const c = { all: 0, awaiting: 0, warning: 0, resolved: 0 };
-    mockIncidents.forEach((inc) => {
-      c.all++;
+    const c = { all: incidents.length, awaiting: 0, warning: 0, resolved: 0 };
+    incidents.forEach((inc) => {
       if (c[inc.category] != null) c[inc.category]++;
     });
     return c;
-  }, []);
-
+  }, [incidents]);
   const tabs = [
     { key: 'all', label: 'All', count: counts.all },
     { key: 'awaiting', label: 'Awaiting Approval', count: counts.awaiting },
     { key: 'warning', label: 'Warning', count: counts.warning },
     { key: 'resolved', label: 'Resolved', count: counts.resolved },
   ];
-
   // Filter incidents based on active tab
   const filteredIncidents = useMemo(() => {
-    if (activeTab === 'all') return mockIncidents;
-    return mockIncidents.filter((inc) => inc.category === activeTab);
-  }, [activeTab]);
+    if (activeTab === 'all') return incidents;
+    return incidents.filter((inc) => inc.category === activeTab);
+  }, [activeTab, incidents]);
 
   return (
     <div>
@@ -101,17 +89,31 @@ const IncidentsPage = () => {
       />
       <FilterTabs tabs={tabs} activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <div className="flex flex-col gap-3">
-        {filteredIncidents.map((incident) => (
-          <IncidentCard key={incident.id} incident={incident} />
-        ))}
-
-        {filteredIncidents.length === 0 && (
-          <div className="flex items-center justify-center rounded-lg border border-dashed border-slate-700 py-16 text-sm text-slate-500">
-            No incidents in this category
+      {
+        error && (
+          <div className="mb-4 rounded-lg border border-red-800 bg-red-950/60 p-3 text-sm text-red-200">
+            Failed to load incidents: {error}
           </div>
-        )}
-      </div>
+        )
+      }
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16 text-sm text-slate-400">
+          Loading incidents from Supabase...
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {filteredIncidents.map((incident) => (
+            <IncidentCard key={incident.id} incident={incident} />
+          ))}
+
+          {filteredIncidents.length === 0 && (
+            <div className="flex items-center justify-center rounded-lg border border-dashed border-slate-700 py-16 text-sm text-slate-500">
+              No incidents in this category
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
