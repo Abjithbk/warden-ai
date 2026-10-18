@@ -1,9 +1,11 @@
 import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
 
+import uuid as _uuid
 from fastapi import FastAPI
 from pydantic import BaseModel
 from graph import build_graph
+from rag.retriever import store_incident
 
 api = FastAPI(title="Warden Agent")
 
@@ -39,4 +41,21 @@ def diagnose(req: DiagnoseRequest):
         "incident_history": "",
         "diagnosis": {},
     })
-    return {"fingerprint": req.fingerprint, "diagnosis": result["diagnosis"]}
+
+    diag = result["diagnosis"]
+
+    # Persist incident to ChromaDB so future diagnoses can learn from history.
+    # Use fingerprint as the stable ID so repeated alerts upsert (idempotent).
+    incident_id = req.fingerprint or str(_uuid.uuid4())
+    try:
+        store_incident(
+            incident_id=incident_id,
+            description=req.description or req.name,
+            action=diag.get("action", "unknown"),
+            outcome=diag.get("reason", ""),
+        )
+    except Exception:
+        pass  # Never let memory write block the response
+
+    return {"fingerprint": req.fingerprint, "diagnosis": diag}
+
