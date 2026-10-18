@@ -67,13 +67,14 @@ const IncidentDetailPage = () => {
     fetchIncident();
   }, [numericId]);
 
-  // While waiting on a human, poll every 5s: someone may click Approve/Reject in Slack.
-  const awaitingApproval = incident?.status === 'awaiting_approval';
+  // Poll every 5s while the incident can still change underneath us: waiting
+  // on a human (Slack click) or remediating (executor finishing).
+  const shouldPoll = ['awaiting_approval', 'remediating'].includes(incident?.status);
   useEffect(() => {
-    if (!awaitingApproval) return undefined;
+    if (!shouldPoll) return undefined;
     const poll = setInterval(() => fetchIncident(true), 5000);
     return () => clearInterval(poll);
-  }, [awaitingApproval, numericId]);
+  }, [shouldPoll, numericId]);
 
   const handleApprove = async () => {
     if (!numericId || actionLoading) return;

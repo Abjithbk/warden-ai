@@ -12,6 +12,7 @@ access goes through _post_json — tests monkeypatch that one function.
 import json
 import urllib.error
 import urllib.request
+import http.client
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -49,13 +50,15 @@ def _post_json(url: str, payload: dict[str, Any], token: str | None = None) -> d
     try:
         with urllib.request.urlopen(request, timeout=SLACK_TIMEOUT_SECONDS) as resp:
             body = resp.read().decode("utf-8")
-    except (urllib.error.URLError, TimeoutError) as exc:
+    except urllib.error.HTTPError as exc:
+        # Must come before URLError (HTTPError is a subclass). Keep Slack's
+        # reply body: it says why (e.g. expired response_url, rate limit).
+        detail = exc.read().decode("utf-8", errors="replace")[:200]
+        raise SlackError(f"Slack HTTP {exc.code}: {detail}") from exc
+    except (OSError, http.client.HTTPException, ValueError) as exc:
+        # OSError covers URLError, timeouts, RemoteDisconnected, resets;
+        # ValueError covers a bad URL or an undecodable body.
         raise SlackError(f"Slack unreachable: {exc}") from exc
-    try:
-        return json.loads(body)
-    except json.JSONDecodeError:
-        # response_url replies with the plain text "ok"
-        return {"ok": body.strip() == "ok"}
 
 
 def _call_api(method: str, payload: dict[str, Any]) -> dict:
@@ -212,13 +215,20 @@ def build_outcome_blocks(incident: Incident, outcome_text: str) -> list[dict]:
 # --------------------------------------------------------------------------
 # Outbound actions
 # --------------------------------------------------------------------------
-def _latest_approval(db: Session, incident_id: int) -> ApprovalRequest:
-    approval = (
+def _latest_approval(
+    db: Session, incident_id: int, *, lock: bool = False
+) -> ApprovalRequest:
+    query = (
         db.query(ApprovalRequest)
         .filter(ApprovalRequest.incident_id == incident_id)
         .order_by(ApprovalRequest.created_at.desc(), ApprovalRequest.id.desc())
-        .first()
     )
+    if lock:
+        # Row lock (same pattern as approval_service): two concurrent notify
+        # requests serialize here, so the second sees slack_message_ts and
+        # does not post a duplicate. No-op on SQLite.
+        query = query.with_for_update()
+    approval = query.first()
     if approval is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -242,7 +252,7 @@ def notify_approval_requested(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found"
         )
-    approval = _latest_approval(db, incident_id)
+    approval = _latest_approval(db, incident_id,lock=True)
 
     if approval.status != ApprovalStatus.pending:
         raise HTTPException(

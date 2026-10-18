@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import SearchBar from '../components/common/SearchBar';
 import AuditTable from '../components/audit/AuditTable';
-import { getAuditLogs } from '../api/client';
+import { getAuditLogs, API_BASE_URL } from '../api/client';
 
 // Maps backend action string to a readable result/status
 function mapActionToResult(action) {
@@ -10,7 +10,7 @@ function mapActionToResult(action) {
   if (action === 'action_started') return 'In progress';
   if (action === 'approval_approved') return 'Success';
   if (action === 'slack_notified') return 'Success';
-  if (action === 'approval_rejected') return 'Failed';
+  if (action === 'approval_rejected') return 'Rejected';
   if (action === 'incident_created') return 'Pending';
   return 'Pending';
 }
@@ -131,7 +131,7 @@ const AuditLog = () => {
         <div className="flex items-center gap-4">
           {/* CSV Export Button */}
           <a
-            href="http://localhost:8000/api/v1/audit/export"
+            href={`${API_BASE_URL}/audit/export`}
             download
             className="flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:bg-slate-700 hover:text-white"
           >

@@ -186,7 +186,8 @@ def test_click_approve_replaces_original_message(
 
     assert response.status_code == 200
     assert "approved" in response.json()["text"]
-    assert "slack:amaya" in response.json()["text"]
+    assert "slack:U1" in response.json()["text"]
+    assert "amaya" not in response.json()["text"]
 
     update = slack_calls[-1]
     assert update["url"] == RESPONSE_URL
@@ -221,3 +222,36 @@ def test_click_with_non_slack_response_url_is_not_called(
 
     assert response.status_code == 200
     assert slack_calls == []
+    # ------------------------------------------------------- HTTP error handling
+def test_post_json_keeps_http_error_body(monkeypatch):
+    import io
+    import urllib.error
+
+    def boom(request, timeout=None):
+        raise urllib.error.HTTPError(
+            request.full_url, 404, "Not Found", {}, io.BytesIO(b"used_url")
+        )
+
+    monkeypatch.setattr(slack_service.urllib.request, "urlopen", boom)
+    with pytest.raises(slack_service.SlackError) as exc:
+        slack_service._post_json("https://hooks.slack.com/x", {})
+    assert "404" in str(exc.value) and "used_url" in str(exc.value)
+
+
+def test_post_json_wraps_remote_disconnected(monkeypatch):
+    import http.client
+
+    def boom(request, timeout=None):
+        raise http.client.RemoteDisconnected("closed")
+
+    monkeypatch.setattr(slack_service.urllib.request, "urlopen", boom)
+    with pytest.raises(slack_service.SlackError):
+        slack_service._post_json("https://hooks.slack.com/x", {})
+
+
+def test_update_via_response_url_never_raises(monkeypatch):
+    def boom(url, payload, token=None):
+        raise slack_service.SlackError("down")
+
+    monkeypatch.setattr(slack_service, "_post_json", boom)
+    slack_service.update_via_response_url(RESPONSE_URL, {"text": "x"})  # no raise
