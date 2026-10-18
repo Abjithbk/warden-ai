@@ -8,3 +8,9 @@ agent/.env
 receiver/.env
 **/receiver/.env
 agent/data/
+
+# Binaries — download at runtime via Dockerfile/scripts, never commit
+opa
+opa_*
+*.wasm
+
