@@ -38,8 +38,7 @@ class ActionType(str, enum.Enum):
     restart_pod = "restart_pod"
     scale_deployment = "scale_deployment"
     rollback_deployment = "rollback_deployment"
-    toggle_feature_flag = "toggle_feature_flag"
-
+    
 
 class ActionStatus(str, enum.Enum):
     pending = "pending"

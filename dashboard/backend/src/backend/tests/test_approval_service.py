@@ -7,7 +7,7 @@ limiting involved at this layer).
 import pytest
 from fastapi import HTTPException
 
-from backend.models.enums import ActionStatus, ApprovalStatus, IncidentStatus
+from backend.models.enums import ActionStatus, ApprovalStatus, IncidentStatus, ActionType
 from backend.services import approval_service
 
 
@@ -86,3 +86,10 @@ def test_approve_incident_with_no_pending_approval_returns_404(db_session):
         approval_service.approve_incident(db_session, incident.id, "dashboard:amaya")
 
     assert exc_info.value.status_code == 404
+
+
+
+def test_action_whitelist_has_three_actions():
+    assert {a.value for a in ActionType} == {
+        "restart_pod", "scale_deployment", "rollback_deployment",
+    }

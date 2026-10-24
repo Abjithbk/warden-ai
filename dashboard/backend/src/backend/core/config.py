@@ -32,6 +32,8 @@ class Settings(BaseSettings):
 
     # --- Slack ---
     slack_signing_secret: str = ""
+    slack_bot_token: str = ""
+    slack_approval_channel: str = ""
 
     # --- Rate limiting ---
     rate_limit_default: str = "60/minute"
