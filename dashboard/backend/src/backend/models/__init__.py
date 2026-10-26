@@ -11,6 +11,7 @@ from backend.models.detection import Detection
 from backend.models.incident import Incident
 from backend.models.policy_check import PolicyCheck
 from backend.models.remediation_action import RemediationAction
+from backend.models.user import User
 
 __all__ = [
     "AgentDecision",
