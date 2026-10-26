@@ -15,6 +15,7 @@ from backend.api.v1.overview import router as overview_router
 from backend.core.config import get_settings
 from backend.core.limiter import limiter
 from backend.core.logging import configure_logging, logger
+from backend.api.v1.auth import router as auth_router
 
 settings = get_settings()
 configure_logging(settings.environment)
@@ -45,7 +46,7 @@ app.include_router(overview_router, prefix=settings.api_v1_prefix)
 app.include_router(incidents_router, prefix=settings.api_v1_prefix)
 app.include_router(slack_router, prefix=settings.api_v1_prefix)
 app.include_router(audit_router, prefix=settings.api_v1_prefix)
-
+app.include_router(auth_router, prefix=settings.api_v1_prefix)
 
 
 @app.get("/")

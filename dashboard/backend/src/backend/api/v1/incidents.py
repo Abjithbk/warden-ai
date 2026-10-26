@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
-
+from backend.api.deps import get_current_user
+from backend.models.user import User
 from backend.core.limiter import limiter
 from backend.db.session import get_db
 from backend.models.enums import IncidentSeverity, IncidentStatus
@@ -17,15 +18,16 @@ router = APIRouter(prefix="/incidents", tags=["incidents"])
 
 
 @router.post("/{incident_id}/approve", response_model=ApprovalActionResponse)
-@limiter.limit("10/minute")
 def approve(
-    request: Request,
     incident_id: int,
     body: ApproveRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    incident, approval, action = approval_service.approve_incident(
-        db, incident_id, body.actioned_by
+    actioned_by = f"dashboard:{current_user.email}"
+    incident, approval, action = approval_service.approve_incident(db, incident_id, actioned_by)
+    return ApprovalActionResponse(
+        ...  # keep the rest exactly as it is now
     )
 
     return ApprovalActionResponse(
@@ -40,18 +42,16 @@ def approve(
 
 
 @router.post("/{incident_id}/reject", response_model=ApprovalActionResponse)
-@limiter.limit("10/minute")
 def reject(
-    request: Request,
     incident_id: int,
     body: RejectRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    incident, approval = approval_service.reject_incident(
-        db,
-        incident_id,
-        body.actioned_by,
-        body.reason,
+    actioned_by = f"dashboard:{current_user.email}"
+    incident, approval = approval_service.reject_incident(db, incident_id, actioned_by, body.reason)
+    return ApprovalActionResponse(
+        ...  # keep the rest exactly as it is now
     )
 
     return ApprovalActionResponse(
