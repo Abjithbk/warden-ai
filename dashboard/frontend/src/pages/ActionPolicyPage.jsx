@@ -32,16 +32,6 @@ const policies = [
     ],
     enabled: false,
   },
-  {
-    icon: 'Flag',
-    title: 'Feature Flag Toggle',
-    description: 'Disables a LaunchDarkly flag tied to a recently-shipped code path implicated in the anomaly.',
-    guardrails: [
-      'Only pre-registered flags are toggleable',
-      'Auto re-enable review after 24h',
-    ],
-    enabled: true,
-  },
 ];
 
 function ActionPolicyPage() {
