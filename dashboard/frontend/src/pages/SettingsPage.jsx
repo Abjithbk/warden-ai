@@ -9,12 +9,6 @@ const initialIntegrations = [
     detail: 'Diagnosis & decision engine',
     enabled: true,
   },
-  {
-    id: 'launchdarkly',
-    name: 'LaunchDarkly',
-    detail: 'Feature flag control',
-    enabled: true,
-  },
 ];
 
 const clusterDetails = [
