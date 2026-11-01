@@ -14,18 +14,16 @@ from backend.config import get_settings
 
 settings = get_settings()
 
-# check_same_thread=False is only needed for SQLite (FastAPI may use the
-# connection from a different thread than it was created in). It's ignored
-# by other database drivers.
-connect_args = (
-    {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
-)
-
+# PostgreSQL production-grade connection engine with pool pre-ping
 engine = create_engine(
-    settings.database_url, connect_args=connect_args, pool_pre_ping=True
+    settings.database_url,
+    pool_pre_ping=True,
+    pool_size=10,
+    max_overflow=20,
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 
 
 def get_db() -> Generator[Session, None, None]:
