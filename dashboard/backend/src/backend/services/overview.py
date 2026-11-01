@@ -15,6 +15,7 @@ from backend.models import (
     IncidentStatus,
     RemediationAction,
 )
+from backend.schemas.overview import OverviewStatsOut
 
 # Points deducted from a perfect 100 sentinel score per active incident,
 # scaled by severity. Purely a simple, explainable heuristic for now.
@@ -33,18 +34,24 @@ _ACTIVE_STATUSES = (
 
 
 def compute_sentinel_score(db: Session) -> int:
-    active_severities = (
-        db.execute(
-            select(Incident.severity).where(Incident.status.in_(_ACTIVE_STATUSES))
-        )
-        .scalars()
-        .all()
+    rows = db.execute(
+        select(Incident.severity, func.count())
+        .where(Incident.status.in_(_ACTIVE_STATUSES))
+        .group_by(Incident.severity)
+    ).all()
+    penalty = sum(_SEVERITY_PENALTY.get(sev, 0) * n for sev, n in rows)
+    return max(0, 100 - penalty)
+
+
+def get_overview_stats(db: Session) -> OverviewStatsOut:
+    return OverviewStatsOut(
+        sentinel_score=compute_sentinel_score(db),
+        active_incidents=count_active_incidents(db),
+        auto_resolved_today=count_auto_resolved_today(db),
+        avg_remediation_seconds=compute_avg_remediation_seconds(db),
+        actions_last_24h=count_actions_last_24h(db),
     )
-
-    penalty = sum(_SEVERITY_PENALTY.get(sev, 0) for sev in active_severities)
-    return max(0, min(100, 100 - penalty))
-
-
+    
 def count_active_incidents(db: Session) -> int:
     return db.execute(
         select(func.count())

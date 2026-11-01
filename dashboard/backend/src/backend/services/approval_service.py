@@ -1,90 +1,53 @@
-"""
-Service layer for the human approval gate: approve_incident / reject_incident.
+"""Human approval gate: approve_incident / reject_incident.
 
-Both are idempotency-guarded on ApprovalRequest.actioned_at — this is the
-field that blocks a Slack click and a dashboard click on the same request
-from racing each other, per the model's own docstring.
+Both lock the latest ApprovalRequest row (FOR UPDATE) so a Slack click and a
+dashboard click cannot both succeed; the loser gets a 409.
 """
 
 from datetime import UTC, datetime
 
-from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from backend.core.errors import ConflictError, PolicyDeniedError
 from backend.models import (
     ActionStatus,
-    AgentDecision,
     ApprovalRequest,
     ApprovalStatus,
     AuditLogEntry,
     Incident,
     IncidentStatus,
-    PolicyCheck,
+    PolicyVerdict,
     RemediationAction,
+)
+from backend.services._common import (
+    commit_or_rollback,
+    get_incident_or_404,
+    get_latest_approval,
+    get_policy_and_decision,
 )
 
 
-def _get_incident_or_404(db: Session, incident_id: int) -> Incident:
-    incident = db.get(Incident, incident_id)
-    if incident is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found"
+def _assert_actionable(incident: Incident, approval: ApprovalRequest) -> None:
+    if approval.actioned_at is not None or approval.status != ApprovalStatus.pending:
+        when = approval.actioned_at.isoformat() if approval.actioned_at else "earlier"
+        raise ConflictError(
+            f"Approval request already {approval.status.value} "
+            f"at {when} by {approval.actioned_by or 'unknown'}"
         )
-    return incident
-
-
-def _get_pending_approval_or_404(db: Session, incident_id: int) -> ApprovalRequest:
-    approval = (
-        db.query(ApprovalRequest)
-        .filter(ApprovalRequest.incident_id == incident_id)
-        .order_by(ApprovalRequest.created_at.desc())
-        .with_for_update()
-        .first()
-    )
-    if approval is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No approval request exists for this incident",
-        )
-    return approval
-
-
-def _assert_not_already_actioned(approval: ApprovalRequest) -> None:
-        # Race guard. The row is locked (FOR UPDATE) when it is read, so a second
-    # request waits for the first to commit, then sees actioned_at set -> 409.
-    if approval.actioned_at is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Approval request already {approval.status.value} at "
-            f"{approval.actioned_at.isoformat()} by {approval.actioned_by}",
-        )
-    if approval.status != ApprovalStatus.pending:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Approval request is not pending (current status: {approval.status.value})",
+    if incident.status != IncidentStatus.awaiting_approval:
+        raise ConflictError(
+            f"Incident is not awaiting approval (status: {incident.status.value})"
         )
 
 
-def _run_stub_execution(
-    db: Session, incident: Incident, approval: ApprovalRequest
-) -> RemediationAction:
-    """
-    STUB: simulates the executor module. Replace the body of this function
-    with the real Kubernetes action call once the execution module lands —
-    approve_incident() itself will not need to change.
-    """
-    decision = (
-        db.query(AgentDecision)
-        .join(PolicyCheck, PolicyCheck.agent_decision_id == AgentDecision.id)
-        .filter(PolicyCheck.id == approval.policy_check_id)
-        .first()
-    )
-    if decision is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="No agent decision found behind this approval request",
-        )
+def _audit(db: Session, incident_id: int, actor: str, action: str, detail: dict) -> None:
+    db.add(AuditLogEntry(incident_id=incident_id, actor=actor, action=action, detail=detail))
 
+
+def _run_stub_execution(db, incident, approval, decision) -> RemediationAction:
+    """STUB for the M7 executor. Replace the body only; callers stay the same.
+    The real flow should leave the incident `remediating` and let the rollback
+    monitor mark it `resolved` after verification."""
     now = datetime.now(UTC)
     action = RemediationAction(
         incident_id=incident.id,
@@ -100,58 +63,32 @@ def _run_stub_execution(
     return action
 
 
-def _add_audit(
-    db: Session, incident_id: int, actor: str, action: str, detail: dict
-) -> None:
-    db.add(
-        AuditLogEntry(
-            incident_id=incident_id,
-            actor=actor,
-            action=action,
-            detail=detail,
-        )
-    )
-
-
 def approve_incident(
     db: Session, incident_id: int, actioned_by: str
 ) -> tuple[Incident, ApprovalRequest, RemediationAction]:
-    incident = _get_incident_or_404(db, incident_id)
-    approval = _get_pending_approval_or_404(db, incident_id)
-    _assert_not_already_actioned(approval)
+    incident = get_incident_or_404(db, incident_id)
+    approval = get_latest_approval(db, incident_id, lock=True)
+    _assert_actionable(incident, approval)
+
+    policy, decision = get_policy_and_decision(db, approval.policy_check_id)
+    if policy.verdict != PolicyVerdict.approved:  # guardrail must never be bypassable
+        raise PolicyDeniedError(f"Policy '{policy.policy_name}' denied this action")
 
     now = datetime.now(UTC)
     approval.status = ApprovalStatus.approved
     approval.actioned_by = actioned_by
     approval.actioned_at = now
 
-    action = _run_stub_execution(db, incident, approval)
-
+    action = _run_stub_execution(db, incident, approval, decision)
     incident.status = IncidentStatus.resolved
     incident.resolved_at = action.completed_at
-    incident.updated_at = now
 
-    _add_audit(
-        db,
-        incident_id,
-        actioned_by,
-        "approval_approved",
-        {"approval_request_id": approval.id},
-    )
-    _add_audit(
-        db,
-        incident_id,
-        "executor",
-        "action_succeeded",
-        {"action_type": action.action_type.value, "target": action.target},
-    )
+    _audit(db, incident_id, actioned_by, "approval_approved",
+           {"approval_request_id": approval.id})
+    _audit(db, incident_id, "executor", "action_succeeded",
+           {"action_type": action.action_type.value, "target": action.target})
 
-    try:
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
-
+    commit_or_rollback(db)
     db.refresh(incident)
     db.refresh(approval)
     db.refresh(action)
@@ -161,33 +98,20 @@ def approve_incident(
 def reject_incident(
     db: Session, incident_id: int, actioned_by: str, reason: str
 ) -> tuple[Incident, ApprovalRequest]:
-    incident = _get_incident_or_404(db, incident_id)
-    approval = _get_pending_approval_or_404(db, incident_id)
-    _assert_not_already_actioned(approval)
+    incident = get_incident_or_404(db, incident_id)
+    approval = get_latest_approval(db, incident_id, lock=True)
+    _assert_actionable(incident, approval)
 
-    now = datetime.now(UTC)
     approval.status = ApprovalStatus.rejected
     approval.actioned_by = actioned_by
-    approval.actioned_at = now
+    approval.actioned_at = datetime.now(UTC)
     approval.rejection_reason = reason
-
     incident.status = IncidentStatus.rejected
-    incident.updated_at = now
 
-    _add_audit(
-        db,
-        incident_id,
-        actioned_by,
-        "approval_rejected",
-        {"approval_request_id": approval.id, "reason": reason},
-    )
+    _audit(db, incident_id, actioned_by, "approval_rejected",
+           {"approval_request_id": approval.id, "reason": reason})
 
-    try:
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
-
+    commit_or_rollback(db)
     db.refresh(incident)
     db.refresh(approval)
     return incident, approval

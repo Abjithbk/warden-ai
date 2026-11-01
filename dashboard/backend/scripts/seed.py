@@ -120,7 +120,6 @@ def attach_pipeline(db, incident: Incident, status: IncidentStatus, index: int) 
                 action=action,
                 detail=detail,
                 created_at=at,
-                updated_at=at,
             )
         )
 

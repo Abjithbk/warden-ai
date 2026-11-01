@@ -9,29 +9,26 @@ from fastapi import FastAPI
 
 from backend.api.router import api_router
 from backend.config import get_settings
+from backend.core.errors import register_error_handlers
 from backend.core.middleware import register_middleware
 from backend.logging import configure_logging, logger
 
-settings = get_settings()
-configure_logging(settings.environment)
+
+def create_app() -> FastAPI:
+    settings = get_settings()
+    configure_logging(settings.environment)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        logger.info("app_startup", environment=settings.environment)
+        yield
+        logger.info("app_shutdown")
+
+    app = FastAPI(title=settings.app_name, lifespan=lifespan)
+    register_middleware(app, settings)
+    register_error_handlers(app)
+    app.include_router(api_router)
+    return app
 
 
-@asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    logger.info("app_startup", environment=settings.environment)
-    yield
-    logger.info("app_shutdown")
-
-
-app = FastAPI(title=settings.app_name, lifespan=lifespan)
-
-# Register rate limiter and CORS
-register_middleware(app)
-
-# Mount all endpoints
-app.include_router(api_router)
-
-
-@app.get("/")
-def read_root() -> dict[str, str]:
-    return {"status": "Warden backend is running"}
+app = create_app()

@@ -2,6 +2,7 @@
 Export all SQLAlchemy models for Alembic discovery and unified imports.
 """
 
+from backend.db.mixins import TimestampMixin
 from backend.models.audit import AuditLogEntry
 from backend.models.enums import (
     ActionStatus,
@@ -18,7 +19,6 @@ from backend.models.incident import (
     Incident,
     PolicyCheck,
     RemediationAction,
-    TimestampMixin,
 )
 
 __all__ = [

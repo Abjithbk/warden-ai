@@ -7,10 +7,21 @@ Detection, AgentDecision, PolicyCheck, ApprovalRequest, and RemediationAction.
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import JSON, DateTime, Enum, Float, ForeignKey, String, Text, func
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db.base import Base
+from backend.db.mixins import TimestampMixin
 from backend.models.enums import (
     ActionStatus,
     ActionType,
@@ -24,17 +35,6 @@ if TYPE_CHECKING:
     from backend.models.audit import AuditLogEntry
 
 
-class TimestampMixin:
-    """Reusable mixin for created_at and updated_at timestamps."""
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-        nullable=False,
-    )
 
 
 class Incident(Base, TimestampMixin):
@@ -59,34 +59,35 @@ class Incident(Base, TimestampMixin):
 
     detections: Mapped[list["Detection"]] = relationship(
         back_populates="incident",
-        order_by="Detection.created_at",
+        order_by="(Detection.created_at,Detection.id)",
         cascade="all, delete-orphan",
     )
     agent_decisions: Mapped[list["AgentDecision"]] = relationship(
         back_populates="incident",
-        order_by="AgentDecision.created_at",
+        order_by="(AgentDecision.created_at,AgentDecision.id)",
         cascade="all, delete-orphan",
     )
     policy_checks: Mapped[list["PolicyCheck"]] = relationship(
         back_populates="incident",
-        order_by="PolicyCheck.created_at",
+        order_by="(PolicyCheck.created_at, PolicyCheck.id)",
         cascade="all, delete-orphan",
     )
     approval_requests: Mapped[list["ApprovalRequest"]] = relationship(
         back_populates="incident",
-        order_by="ApprovalRequest.created_at",
+        order_by="(ApprovalRequest.created_at, ApprovalRequest.id)",
         cascade="all, delete-orphan",
     )
     remediation_actions: Mapped[list["RemediationAction"]] = relationship(
         back_populates="incident",
-        order_by="RemediationAction.created_at",
+        order_by="(RemediationAction.created_at, RemediationAction.id)",
         cascade="all, delete-orphan",
     )
     audit_log_entries: Mapped[list["AuditLogEntry"]] = relationship(
         back_populates="incident",
-        order_by="AuditLogEntry.created_at",
+        order_by="(AuditLogEntry.created_at, AuditLogEntry.id)",
         cascade="all, delete-orphan",
     )
+
 
 
 class Detection(Base, TimestampMixin):
@@ -138,13 +139,23 @@ class PolicyCheck(Base, TimestampMixin):
         Enum(PolicyVerdict, native_enum=False), nullable=False
     )
     reason: Mapped[str] = mapped_column(Text, nullable=False)
-    policy_name: Mapped[str] = mapped_column(String(255), nullable=True)
+    policy_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
 
     incident: Mapped["Incident"] = relationship(back_populates="policy_checks")
 
 
 class ApprovalRequest(Base, TimestampMixin):
     __tablename__ = "approval_requests"
+    __table_args__ = (
+        Index(
+            "uq_one_pending_approval_per_incident",
+            "incident_id",
+            unique=True,
+            postgresql_where=text("status = 'pending'"),
+            sqlite_where=text("status = 'pending'"),
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     incident_id: Mapped[int] = mapped_column(

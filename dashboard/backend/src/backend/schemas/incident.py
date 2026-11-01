@@ -6,7 +6,7 @@ Combines list items and the full pipeline trace (Detection -> RemediationAction)
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 from backend.models.enums import (
     ActionStatus,
@@ -133,7 +133,9 @@ class IncidentDetailOut(BaseModel):
     policy_checks: list[PolicyCheckOut]
     approval_requests: list[ApprovalRequestOut]
     remediation_actions: list[RemediationActionOut]
-    audit_log: list[AuditLogEntryBriefOut]
+    audit_log: list[AuditLogEntryBriefOut] = Field(
+        validation_alias = AliasChoices("audit_log","audit_log_entries")
+    )
 
 
 # Aliases for convenience
