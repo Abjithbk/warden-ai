@@ -6,8 +6,10 @@ only for genuinely non-secret local-dev values.
 """
 
 from functools import lru_cache
+from typing import Annotated, Literal
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -19,15 +21,13 @@ class Settings(BaseSettings):
 
     # --- App ---
     app_name: str = "Warden Dashboard API"
-    environment: str = "local"  # local | staging | production
+    environment: Literal['local','staging','production'] = 'local'
     api_v1_prefix: str = "/api/v1"
 
     # --- CORS ---
-    cors_origins: list[str] = ["http://localhost:5173"]
+    cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:5173"]
 
-    # --- Database ---
-    # SQLite for local dev by default. Swap to Postgres later by changing
-    # this one value, e.g. postgresql+psycopg://user:pass@host:5432/warden
+   
     database_url: str
 
     # --- Slack ---
@@ -41,11 +41,19 @@ class Settings(BaseSettings):
     rate_limit_default: str = "60/minute"
 
     # --- Dashboard authentication ---
-    # Pre-shared key required in the X-API-Key header for dashboard-facing
-    # endpoints (e.g. POST /slack/test, POST /slack/notify).
-    # Leave empty to disable those endpoints (dependency returns 503).
     dashboard_api_key: str = ""
+    @field_validator("cors_origins",mode="before")
+    @classmethod
 
+    def _split_origins(cls,v):
+        if isinstance(v,str):
+            v= v.strip()
+            if v.startswith("["):
+                import json
+
+                return json.loads(v)
+            return [o.strip() for o in v.split(",") if o.strip()]
+        return v
 
 @lru_cache
 def get_settings() -> Settings:

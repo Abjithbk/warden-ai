@@ -9,23 +9,35 @@ Uses only the stdlib for HTTP so no new dependency is needed. All network
 access goes through _post_json — tests monkeypatch that one function.
 """
 
+import http.client
 import json
 import urllib.error
 import urllib.request
-import http.client
 from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from backend.core.config import get_settings
-from backend.core.logging import logger
-from backend.models.agent_decision import AgentDecision
-from backend.models.approval_request import ApprovalRequest
-from backend.models.audit_log_entry import AuditLogEntry
-from backend.models.enums import ApprovalStatus
-from backend.models.incident import Incident
-from backend.models.policy_check import PolicyCheck
+from backend.config import get_settings
+from backend.core.errors import (
+    ConflictError,
+    ServiceUnavailableError,
+    UpstreamError,
+)
+from backend.logging import logger
+from backend.models import (
+    AgentDecision,
+    ApprovalRequest,
+    ApprovalStatus,
+    AuditLogEntry,
+    Incident,
+)
+from backend.services._common import (
+    commit_or_rollback,
+    get_incident_or_404,
+    get_latest_approval,
+    get_policy_and_decision,
+)
 
 SLACK_TIMEOUT_SECONDS = 5.0
 # response_url values come from a signed Slack payload, but we still refuse
@@ -37,9 +49,6 @@ class SlackError(Exception):
     """Network failure or Slack API returned ok=false."""
 
 
-# --------------------------------------------------------------------------
-# HTTP
-# --------------------------------------------------------------------------
 def _post_json(url: str, payload: dict[str, Any], token: str | None = None) -> dict:
     headers = {"Content-Type": "application/json; charset=utf-8"}
     if token:
@@ -49,16 +58,20 @@ def _post_json(url: str, payload: dict[str, Any], token: str | None = None) -> d
     )
     try:
         with urllib.request.urlopen(request, timeout=SLACK_TIMEOUT_SECONDS) as resp:
-            body = resp.read().decode("utf-8")
+            raw = resp.read().decode("utf-8", errors="replace")
     except urllib.error.HTTPError as exc:
-        # Must come before URLError (HTTPError is a subclass). Keep Slack's
-        # reply body: it says why (e.g. expired response_url, rate limit).
         detail = exc.read().decode("utf-8", errors="replace")[:200]
         raise SlackError(f"Slack HTTP {exc.code}: {detail}") from exc
     except (OSError, http.client.HTTPException, ValueError) as exc:
-        # OSError covers URLError, timeouts, RemoteDisconnected, resets;
-        # ValueError covers a bad URL or an undecodable body.
         raise SlackError(f"Slack unreachable: {exc}") from exc
+
+    if not raw:
+        return {}
+    try:
+        return json.loads(raw)
+    except json.JSONDecodeError:
+        # response_url replies with the plain text "ok", not JSON.
+        return {"ok": raw.strip() == "ok", "raw": raw[:200]}
 
 
 def _call_api(method: str, payload: dict[str, Any]) -> dict:
@@ -94,18 +107,14 @@ def get_status() -> dict[str, Any]:
 
 def _require_configured() -> None:
     if not can_notify():
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Slack is not configured (set SLACK_BOT_TOKEN and SLACK_CHANNEL_ID)",
+        raise ServiceUnavailableError(
+            "Slack is not configured (set SLACK_BOT_TOKEN and SLACK_CHANNEL_ID)"
         )
 
 
-def _slack_failure(exc: SlackError) -> HTTPException:
+def _slack_failure(exc: SlackError) -> UpstreamError:
     logger.warning("slack_api_failed", error=str(exc))
-    return HTTPException(
-        status_code=status.HTTP_502_BAD_GATEWAY,
-        detail=f"Slack request failed: {exc}",
-    )
+    return UpstreamError(f"Slack request failed: {exc}")
 
 
 # --------------------------------------------------------------------------
@@ -240,41 +249,18 @@ def _latest_approval(
 def notify_approval_requested(
     db: Session, incident_id: int, *, force: bool = False
 ) -> tuple[ApprovalRequest, bool]:
-    """
-    Post the approval request to Slack. Returns (approval, already_sent).
-
-    Call this from the agent/policy pipeline right after the ApprovalRequest
-    row is created (wrap in try/except HTTPException — a Slack outage must
-    not break incident handling; the dashboard still works).
-    """
-    incident = db.get(Incident, incident_id)
-    if incident is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Incident not found"
-        )
-    approval = _latest_approval(db, incident_id,lock=True)
+    incident = get_incident_or_404(db, incident_id)
+    approval = get_latest_approval(db, incident_id, lock=True)
 
     if approval.status != ApprovalStatus.pending:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Approval request is not pending (current status: {approval.status.value})",
+        raise ConflictError(
+            f"Approval request is not pending (current status: {approval.status.value})"
         )
     if approval.slack_message_ts and not force:
         return approval, True
 
     _require_configured()
-
-    decision = (
-        db.query(AgentDecision)
-        .join(PolicyCheck, PolicyCheck.agent_decision_id == AgentDecision.id)
-        .filter(PolicyCheck.id == approval.policy_check_id)
-        .first()
-    )
-    if decision is None:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="No agent decision found behind this approval request",
-        )
+    _, decision = get_policy_and_decision(db, approval.policy_check_id)
 
     settings = get_settings()
     try:
@@ -282,7 +268,6 @@ def notify_approval_requested(
             "chat.postMessage",
             {
                 "channel": settings.slack_channel_id,
-                # plain-text fallback for push notifications / screen readers
                 "text": (
                     f"Approval needed: {incident.title} "
                     f"({decision.proposed_action.value} on {decision.target})"
@@ -291,28 +276,17 @@ def notify_approval_requested(
             },
         )
     except SlackError as exc:
+        db.rollback()  # release the row lock
         raise _slack_failure(exc) from exc
 
     approval.slack_channel = data.get("channel", settings.slack_channel_id)
     approval.slack_message_ts = data.get("ts")
-    db.add(
-        AuditLogEntry(
-            incident_id=incident_id,
-            actor="system",
-            action="slack_notified",
-            detail={
-                "service": incident.service,
-                "channel": approval.slack_channel,
-                "ts": approval.slack_message_ts,
-                "approval_request_id": approval.id,
-            },
-        )
-    )
-    try:
-        db.commit()
-    except Exception:
-        db.rollback()
-        raise
+    db.add(AuditLogEntry(
+        incident_id=incident_id, actor="system", action="slack_notified",
+        detail={"service": incident.service, "channel": approval.slack_channel,
+                "ts": approval.slack_message_ts, "approval_request_id": approval.id},
+    ))
+    commit_or_rollback(db)
     db.refresh(approval)
     return approval, False
 

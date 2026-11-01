@@ -1,84 +1,65 @@
-"""
-Service layer for the audit trail — GET /api/v1/audit reads from
-AuditLogEntry, the append-only table every pipeline stage writes to.
-"""
-
 import csv
 import io
+import json
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from backend.models.audit_log_entry import AuditLogEntry
+from backend.models import AuditLogEntry
+
+MAX_EXPORT_ROWS = 10_000
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _filters(incident_id: int | None, actor: str | None, action: str | None) -> list:
+    conds = []
+    if incident_id is not None:
+        conds.append(AuditLogEntry.incident_id == incident_id)
+    if actor is not None:
+        conds.append(AuditLogEntry.actor == actor)
+    if action is not None:
+        conds.append(AuditLogEntry.action == action)
+    return conds
+
+
+def _order():
+    return (AuditLogEntry.created_at.desc(), AuditLogEntry.id.desc())
 
 
 def list_audit_entries(
-    db: Session,
-    *,
-    incident_id: int | None = None,
-    actor: str | None = None,
-    action: str | None = None,
-    limit: int = 50,
-    offset: int = 0,
+    db: Session, *, incident_id=None, actor=None, action=None, limit=50, offset=0
 ) -> tuple[list[AuditLogEntry], int]:
-    """Returns (page of entries, total matching count), newest first."""
-    query = select(AuditLogEntry)
-    count_query = select(func.count()).select_from(AuditLogEntry)
-
-    if incident_id is not None:
-        query = query.where(AuditLogEntry.incident_id == incident_id)
-        count_query = count_query.where(AuditLogEntry.incident_id == incident_id)
-    if actor is not None:
-        query = query.where(AuditLogEntry.actor == actor)
-        count_query = count_query.where(AuditLogEntry.actor == actor)
-    if action is not None:
-        query = query.where(AuditLogEntry.action == action)
-        count_query = count_query.where(AuditLogEntry.action == action)
-
-    total = db.execute(count_query).scalar_one()
-
-    query = query.order_by(AuditLogEntry.created_at.desc()).limit(limit).offset(offset)
-    items = list(db.execute(query).scalars().all())
-
-    return items, total
+    conds = _filters(incident_id, actor, action)
+    total = db.execute(
+        select(func.count()).select_from(AuditLogEntry).where(*conds)
+    ).scalar_one()
+    items = db.execute(
+        select(AuditLogEntry).where(*conds).order_by(*_order()).limit(limit).offset(offset)
+    ).scalars().all()
+    return list(items), total
 
 
-def export_audit_csv(
-    db: Session,
-    *,
-    incident_id: int | None = None,
-    actor: str | None = None,
-    action: str | None = None,
-) -> str:
-    """
-    Same filters as list_audit_entries but no pagination — exports the full
-    matching set as a CSV string. `detail` (a JSON dict) is flattened to its
-    str() form since CSV has no nested-object concept.
-    """
-    query = select(AuditLogEntry)
-    if incident_id is not None:
-        query = query.where(AuditLogEntry.incident_id == incident_id)
-    if actor is not None:
-        query = query.where(AuditLogEntry.actor == actor)
-    if action is not None:
-        query = query.where(AuditLogEntry.action == action)
-    query = query.order_by(AuditLogEntry.created_at.desc())
+def _safe_cell(value: object) -> str:
+    """Neutralise CSV/Excel formula injection."""
+    text = str(value)
+    return f"'{text}" if text.startswith(_FORMULA_PREFIXES) else text
 
-    entries = db.execute(query).scalars().all()
 
-    buffer = io.StringIO()
-    writer = csv.writer(buffer)
-    writer.writerow(["id", "incident_id", "actor", "action", "detail", "created_at"])
-    for entry in entries:
-        writer.writerow(
-            [
-                entry.id,
-                entry.incident_id,
-                entry.actor,
-                entry.action,
-                str(entry.detail),
-                entry.created_at.isoformat(),
-            ]
-        )
+def export_audit_csv(db: Session, *, incident_id=None, actor=None, action=None) -> str:
+    entries = db.execute(
+        select(AuditLogEntry)
+        .where(*_filters(incident_id, actor, action))
+        .order_by(*_order())
+        .limit(MAX_EXPORT_ROWS)
+    ).scalars().all()
 
-    return buffer.getvalue()
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["id", "incident_id", "actor", "action", "detail", "created_at"])
+    for e in entries:
+        w.writerow([
+            e.id, e.incident_id, _safe_cell(e.actor), _safe_cell(e.action),
+            _safe_cell(json.dumps(e.detail, default=str, sort_keys=True)),
+            e.created_at.isoformat(),
+        ])
+    return buf.getvalue()

@@ -1,10 +1,10 @@
 from logging.config import fileConfig
 
+from alembic import context
 from sqlalchemy import create_engine, pool
 
 import backend.models  # noqa: F401 - registers every model on Base.metadata
-from alembic import context
-from backend.core.config import get_settings
+from backend.config import get_settings
 from backend.db.base import Base
 
 # this is the Alembic Config object, which provides

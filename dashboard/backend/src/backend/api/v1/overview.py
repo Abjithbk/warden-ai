@@ -18,10 +18,4 @@ def get_recent_actions(
 
 @router.get("/stats", response_model=OverviewStatsOut)
 def get_overview_stats(db: Session = Depends(get_db)) -> OverviewStatsOut:
-    return OverviewStatsOut(
-        sentinel_score=overview_service.compute_sentinel_score(db),
-        active_incidents=overview_service.count_active_incidents(db),
-        auto_resolved_today=overview_service.count_auto_resolved_today(db),
-        avg_remediation_seconds=overview_service.compute_avg_remediation_seconds(db),
-        actions_last_24h=overview_service.count_actions_last_24h(db),
-    )
+    return overview_service.get_overview_stats(db)
