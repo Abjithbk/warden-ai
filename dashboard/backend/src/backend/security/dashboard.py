@@ -18,7 +18,7 @@ Usage::
 from fastapi import Depends, HTTPException, status
 from fastapi.security import APIKeyHeader
 
-from backend.core.config import Settings, get_settings
+from backend.config import Settings, get_settings
 
 _api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 

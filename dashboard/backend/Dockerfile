@@ -18,7 +18,7 @@ RUN useradd --system --no-create-home --shell /usr/sbin/nologin appuser
 WORKDIR /app
 COPY --from=builder --chown=appuser:appuser /app/.venv /app/.venv
 COPY --chown=appuser:appuser alembic.ini ./
-COPY --chown=appuser:appuser alembic/ alembic/
+COPY --chown=appuser:appuser migrations/ migrations/
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1
 USER appuser
 EXPOSE 8000

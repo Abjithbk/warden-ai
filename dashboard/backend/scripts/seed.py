@@ -16,21 +16,21 @@ from datetime import UTC, datetime, timedelta
 from faker import Faker
 
 from backend.db.session import SessionLocal
-from backend.models.agent_decision import AgentDecision
-from backend.models.approval_request import ApprovalRequest
-from backend.models.audit_log_entry import AuditLogEntry
-from backend.models.detection import Detection
-from backend.models.enums import (
+from backend.models import (
     ActionStatus,
     ActionType,
+    AgentDecision,
+    ApprovalRequest,
     ApprovalStatus,
+    AuditLogEntry,
+    Detection,
+    Incident,
     IncidentSeverity,
     IncidentStatus,
+    PolicyCheck,
     PolicyVerdict,
+    RemediationAction,
 )
-from backend.models.incident import Incident
-from backend.models.policy_check import PolicyCheck
-from backend.models.remediation_action import RemediationAction
 
 fake = Faker()
 

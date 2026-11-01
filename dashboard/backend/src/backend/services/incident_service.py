@@ -6,14 +6,17 @@ imports here. Keeps routers thin and makes this layer easy to unit test.
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from backend.models.agent_decision import AgentDecision
-from backend.models.approval_request import ApprovalRequest
-from backend.models.audit_log_entry import AuditLogEntry
-from backend.models.detection import Detection
-from backend.models.enums import IncidentSeverity, IncidentStatus
-from backend.models.incident import Incident
-from backend.models.policy_check import PolicyCheck
-from backend.models.remediation_action import RemediationAction
+from backend.models import (
+    AgentDecision,
+    ApprovalRequest,
+    AuditLogEntry,
+    Detection,
+    Incident,
+    IncidentSeverity,
+    IncidentStatus,
+    PolicyCheck,
+    RemediationAction,
+)
 
 
 def list_incidents(

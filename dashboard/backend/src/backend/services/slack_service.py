@@ -9,23 +9,25 @@ Uses only the stdlib for HTTP so no new dependency is needed. All network
 access goes through _post_json — tests monkeypatch that one function.
 """
 
+import http.client
 import json
 import urllib.error
 import urllib.request
-import http.client
 from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from backend.core.config import get_settings
-from backend.core.logging import logger
-from backend.models.agent_decision import AgentDecision
-from backend.models.approval_request import ApprovalRequest
-from backend.models.audit_log_entry import AuditLogEntry
-from backend.models.enums import ApprovalStatus
-from backend.models.incident import Incident
-from backend.models.policy_check import PolicyCheck
+from backend.config import get_settings
+from backend.logging import logger
+from backend.models import (
+    AgentDecision,
+    ApprovalRequest,
+    ApprovalStatus,
+    AuditLogEntry,
+    Incident,
+    PolicyCheck,
+)
 
 SLACK_TIMEOUT_SECONDS = 5.0
 # response_url values come from a signed Slack payload, but we still refuse
@@ -49,7 +51,7 @@ def _post_json(url: str, payload: dict[str, Any], token: str | None = None) -> d
     )
     try:
         with urllib.request.urlopen(request, timeout=SLACK_TIMEOUT_SECONDS) as resp:
-            body = resp.read().decode("utf-8")
+             resp.read()
     except urllib.error.HTTPError as exc:
         # Must come before URLError (HTTPError is a subclass). Keep Slack's
         # reply body: it says why (e.g. expired response_url, rate limit).

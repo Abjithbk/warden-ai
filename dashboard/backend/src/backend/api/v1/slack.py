@@ -11,10 +11,10 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request,
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
-from backend.core.config import get_settings
-from backend.core.limiter import limiter
-from backend.core.logging import logger
+from backend.config import get_settings
+from backend.core.middleware import limiter
 from backend.db.session import get_db
+from backend.logging import logger
 from backend.schemas.slack import SlackNotifyOut, SlackStatusOut, SlackTestOut
 from backend.security.slack import is_valid_slack_signature
 from backend.services import approval_service, slack_service

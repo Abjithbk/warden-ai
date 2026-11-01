@@ -8,10 +8,13 @@ from datetime import UTC, datetime, timedelta
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from backend.models.approval_request import ApprovalRequest
-from backend.models.enums import IncidentSeverity, IncidentStatus
-from backend.models.incident import Incident
-from backend.models.remediation_action import RemediationAction
+from backend.models import (
+    ApprovalRequest,
+    Incident,
+    IncidentSeverity,
+    IncidentStatus,
+    RemediationAction,
+)
 
 # Points deducted from a perfect 100 sentinel score per active incident,
 # scaled by severity. Purely a simple, explainable heuristic for now.

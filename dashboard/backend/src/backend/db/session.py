@@ -10,7 +10,7 @@ from collections.abc import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from backend.core.config import get_settings
+from backend.config import get_settings
 
 settings = get_settings()
 

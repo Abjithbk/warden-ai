@@ -19,19 +19,19 @@ from sqlalchemy.pool import StaticPool
 from backend.db.base import Base
 from backend.db.session import get_db
 from backend.main import app
-from backend.security.dashboard import require_dashboard_auth
-from backend.models.agent_decision import AgentDecision
-from backend.models.approval_request import ApprovalRequest
-from backend.models.detection import Detection
-from backend.models.enums import (
+from backend.models import (
     ActionType,
+    AgentDecision,
+    ApprovalRequest,
     ApprovalStatus,
+    Detection,
+    Incident,
     IncidentSeverity,
     IncidentStatus,
+    PolicyCheck,
     PolicyVerdict,
 )
-from backend.models.incident import Incident
-from backend.models.policy_check import PolicyCheck
+from backend.security.dashboard import require_dashboard_auth
 
 
 @pytest.fixture()

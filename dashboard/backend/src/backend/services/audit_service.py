@@ -9,7 +9,7 @@ import io
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from backend.models.audit_log_entry import AuditLogEntry
+from backend.models import AuditLogEntry
 
 
 def list_audit_entries(
