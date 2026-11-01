@@ -39,9 +39,6 @@ class Settings(BaseSettings):
     dashboard_base_url: str = "http://localhost:5173"
     # --- Rate limiting ---
     rate_limit_default: str = "60/minute"
-
-    # --- Dashboard authentication ---
-    dashboard_api_key: str = ""
     @field_validator("cors_origins",mode="before")
     @classmethod
 
