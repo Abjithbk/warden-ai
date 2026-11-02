@@ -1,29 +1,16 @@
-import { useState, useEffect } from 'react';
+import LiveClock from './LiveClock'
 
-const PageHeader = ({ title, subtitle }) => {
-  const [currentTime, setCurrentTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  return (
-    <div className="flex items-start justify-between mb-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">{title}</h1>
-        {subtitle && (
-          <p className="text-sm text-slate-400 mt-1">{subtitle}</p>
-        )}
-      </div>
-      <span className="text-sm text-slate-500 font-mono tabular-nums">
-        {currentTime.toLocaleTimeString('en-GB')}
-      </span>
+const PageHeader = ({ title, subtitle, children }) => (
+  <div className="mb-6 flex items-start justify-between gap-4">
+    <div>
+      <h1 className="text-2xl font-bold text-white">{title}</h1>
+      {subtitle && <p className="mt-1 text-sm text-slate-400">{subtitle}</p>}
     </div>
-  );
-};
+    <div className="flex items-center gap-4">
+      {children}
+      <LiveClock className="text-sm text-slate-500" />
+    </div>
+  </div>
+)
 
-export default PageHeader;
+export default PageHeader

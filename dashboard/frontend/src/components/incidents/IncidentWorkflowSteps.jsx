@@ -10,14 +10,14 @@ import {
   Send,
   Loader2,
 } from 'lucide-react';
-
+import { parseApiDate, humanize } from '../../utils/format';
 const card =
   'rounded-xl border border-slate-800/80 bg-slate-900/60 p-5 shadow-lg backdrop-blur-sm';
 const pending =
   'rounded border border-slate-700/50 bg-slate-800/80 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-slate-500';
 
-const formatTime = (iso) => (iso ? `${new Date(iso).toISOString().slice(11, 19)} UTC` : null);
-const humanize = (value) => (value || '').replace(/_/g, ' ');
+const formatTime = (iso) => (iso ? `${parseApiDate(iso).toISOString().slice(11, 19)} UTC` : null);
+
 
 // "slack:amaya" -> { via: 'Slack', name: 'amaya' }
 function parseActor(actor) {
@@ -69,6 +69,7 @@ const IncidentWorkflowSteps = ({
   const sentToSlack = Boolean(approval?.slack_message_ts);
   const policyDenied = policy?.verdict === 'denied';
   const executed = action?.status === 'succeeded';
+  const canDecide = approvalState === 'awaiting' && !policyDenied;
 
   return (
     <div className="space-y-3.5">
@@ -178,14 +179,14 @@ const IncidentWorkflowSteps = ({
       {/* STEP 4: HUMAN APPROVAL */}
       <div
         className={`rounded-xl border transition-all duration-300 bg-slate-900/60 p-5 shadow-lg backdrop-blur-sm ${approvalState === 'awaiting'
-            ? 'border-indigo-500/40 shadow-indigo-950/20'
-            : approvalState === 'approving'
-              ? 'border-amber-500/40'
-              : approvalState === 'approved'
-                ? 'border-emerald-500/40'
-                : approvalState === 'denied'
-                  ? 'border-rose-500/40'
-                  : 'border-slate-800/80'
+          ? 'border-indigo-500/40 shadow-indigo-950/20'
+          : approvalState === 'approving'
+            ? 'border-amber-500/40'
+            : approvalState === 'approved'
+              ? 'border-emerald-500/40'
+              : approvalState === 'denied'
+                ? 'border-rose-500/40'
+                : 'border-slate-800/80'
           }`}
       >
         <div className="flex items-center justify-between">
@@ -224,10 +225,18 @@ const IncidentWorkflowSteps = ({
                 </div>
               ) : (
                 <div className="mt-4 flex flex-wrap items-center gap-3">
+                  {policyDenied && (
+                    <p className="mt-3 text-xs text-rose-300">
+                      Policy denied this action, so it cannot be approved. You can still reject it.
+                    </p>
+                  )}
+
                   <button
                     type="button"
                     onClick={onApprove}
-                    className="flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 shadow-md shadow-emerald-500/20 transition-all hover:bg-emerald-400 active:scale-95 cursor-pointer"
+                    disabled={!canDecide}
+                    title={policyDenied ? 'Blocked by policy' : undefined}
+                    className="flex items-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 shadow-md shadow-emerald-500/20 transition-all hover:bg-emerald-400 active:scale-95 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     <Check className="h-4 w-4 stroke-[2.5]" />
                     <span>Approve Action</span>

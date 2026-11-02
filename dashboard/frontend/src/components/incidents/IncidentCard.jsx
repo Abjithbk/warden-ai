@@ -1,46 +1,35 @@
-import { Link } from 'react-router-dom';
-import IncidentStatusBadge from './IncidentStatusBadge';
-
-const borderColorMap = {
-  'Awaiting Approval': 'border-l-amber-500',
-  Remediating: 'border-l-yellow-400',
-  Resolved: 'border-l-emerald-500',
-  Warning: 'border-l-orange-500',
-};
+import { Link } from 'react-router-dom'
+import StatusBadge from '../common/StatusBadge'
+import { BORDER_CLASSES, getIncidentStatus } from '../../constants/status'
+import { formatTimeAgo } from '../../utils/format'
 
 const IncidentCard = ({ incident }) => {
-  const borderColor = borderColorMap[incident.status] || 'border-l-slate-500';
+  const status = getIncidentStatus(incident.status)
 
   return (
     <Link
       to={`/incidents/${incident.id}`}
-      className={`group flex items-center justify-between rounded-lg border-l-[3px] bg-slate-800/40 px-5 py-4 transition-all duration-200 hover:bg-slate-800/70 hover:translate-x-0.5 ${borderColor}`}
+      className={`group flex items-center justify-between rounded-lg border-l-[3px] bg-slate-800/40 px-5 py-4 transition-all duration-200 hover:translate-x-0.5 hover:bg-slate-800/70 ${BORDER_CLASSES[status.tone]}`}
     >
-      {/* Left: incident info */}
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-white truncate">
+        <p className="truncate text-sm font-semibold text-white">
           {incident.service}
-          <span className="text-slate-400 font-normal"> — </span>
+          <span className="font-normal text-slate-400"> — </span>
           {incident.title}
         </p>
-        <p className="mt-1 text-xs text-slate-500 truncate">
-          {incident.namespace}
-          {incident.detail && (
-            <>
-              <span className="mx-1.5 text-slate-600">·</span>
-              {incident.detail}
-            </>
-          )}
+        <p className="mt-1 truncate text-xs text-slate-500">
+          {incident.namespace} / {incident.service}
+          <span className="mx-1.5 text-slate-600">·</span>
+          Severity: {incident.severity}
         </p>
       </div>
 
-      {/* Right: badge + time */}
-      <div className="ml-4 flex flex-col items-end gap-1.5 flex-shrink-0">
-        <IncidentStatusBadge status={incident.status} />
-        <span className="text-[11px] text-slate-500">{incident.time}</span>
+      <div className="ml-4 flex shrink-0 flex-col items-end gap-1.5">
+        <StatusBadge {...status} />
+        <span className="text-[11px] text-slate-500">{formatTimeAgo(incident.created_at)}</span>
       </div>
     </Link>
-  );
-};
+  )
+}
 
-export default IncidentCard;
+export default IncidentCard

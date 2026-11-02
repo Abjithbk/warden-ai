@@ -1,37 +1,29 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Menu } from 'lucide-react';
-import Sidebar from './Sidebar';
+import { useState } from 'react'
+import { Link, Outlet } from 'react-router-dom'
+import { Menu } from 'lucide-react'
+import Sidebar from './Sidebar'
 
-const Layout = ({ children }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+const Layout = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      {/* Mobile overlay */}
+    <div className="min-h-screen bg-slate-950 text-slate-100">
       {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 z-30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 z-30 bg-black/60 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
 
-      {/* Main content */}
       <div className="lg:pl-64">
-        {/* Mobile top bar */}
         <div className="sticky top-0 z-20 flex items-center gap-4 border-b border-slate-800 bg-slate-950/80 px-4 py-3 backdrop-blur-md lg:hidden">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors"
+            className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
             aria-label="Open menu"
           >
             <Menu className="h-5 w-5" />
@@ -44,10 +36,12 @@ const Layout = ({ children }) => {
           </Link>
         </div>
 
-        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="p-4 sm:p-6 lg:p-8">
+          <Outlet />
+        </main>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Layout;
+export default Layout
